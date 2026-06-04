@@ -113,7 +113,7 @@ async function syncNow(){
     }
     await pushAll();
     lastSynced=new Date();setSync('synced','Synced '+lastSynced.toLocaleTimeString());
-    if(changed){render();restoreTab();}
+    if(changed){backfillSuggestions();render();restoreTab();}
   }catch(e){setSync('offline','Offline — changes saved locally');}
 }
 
@@ -138,6 +138,7 @@ async function boot(){
     if(r&&r['mw_cfg']){
       loadFromRemote(r);
       runMigration();
+      backfillSuggestions();
       document.getElementById('setupBg').classList.remove('open');
       checkWeekPrompt();render();setSync('synced','Synced from cloud');
     }else{setSync('local','Not set up yet');}
@@ -145,6 +146,7 @@ async function boot(){
   }
 
   runMigration();
+  backfillSuggestions();
   checkWeekPrompt();
   render();
   syncNow();
@@ -180,6 +182,33 @@ function migrateRepsFormat(){
   Object.keys(R).forEach(wk=>Object.keys(R[wk]).forEach(id=>{
     if(typeof R[wk][id]==='number'){R[wk][id]={reps:R[wk][id],suggested:R[wk][id],isOverride:false};}
   }));
+}
+
+// Ensure the current week has a `suggested` rep for every exercise.
+// This restores the faint-green target highlight AND the "Next week" hint.
+// Computes the suggestion from the previous week's logged reps using the
+// same progression rule as doAdvance — only fills when it's missing.
+function backfillSuggestions(){
+  if(!cfg)return;
+  const wk=cfg.currentWeek;
+  if(!R[wk])R[wk]={};
+  const pR=R[wk-1]||{};
+  let filled=false;
+  allExercises().forEach(ex=>{
+    if(ex.rMin===null)return;                       // timed exercise — no numeric suggestion
+    if(W[wk]?.[ex.id]===undefined)return;           // not part of this week's workout
+    const cur=R[wk][ex.id];
+    if(cur&&cur.suggested!=null)return;             // already has a suggestion — leave it
+    const prd=pR[ex.id];
+    const prevLogged=prd?.reps??null;
+    const prevSugg=prd?.suggested??ex.rMin;
+    let ns;
+    if(prevLogged!==null&&prevLogged>=ex.rMax)ns=ex.rMin;                 // hit top last week → reset
+    else{const base=prevLogged!==null?prevLogged:prevSugg;ns=Math.min(base+1,ex.rMax);}
+    R[wk][ex.id]={reps:cur?.reps??null,suggested:ns,isOverride:cur?.isOverride??false};
+    filled=true;
+  });
+  if(filled){ls.set(K.R,R);pushAll();}
 }
 
 function defaultCardioTpls(){

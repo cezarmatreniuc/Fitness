@@ -185,7 +185,12 @@ svg.chart{width:100%;display:block}
 .bw-log-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
 .bw-log-card h3{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;margin-bottom:14px;color:var(--orange)}
 .bw-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px}
-.bw-inp-wrap{flex:1;min-width:100px}
+.bw-inp-wrap{flex:1 1 110px;min-width:0}
+/* iOS Safari: native date/number inputs have an intrinsic min width and
+   ignore width:100% inside flex rows, causing them to overlap neighbours.
+   Normalising appearance + min-width:0 forces them to respect their box. */
+input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%}
+.bw-inp[type=date]{text-align:center}
 .bw-inp-wrap label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase}
 .bw-inp{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;padding:9px 12px;border-radius:9px;outline:none}
 .bw-inp:focus{border-color:var(--orange)}
@@ -221,7 +226,7 @@ svg.chart{width:100%;display:block}
 .cardio-inp{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none}
 .cardio-inp:focus{border-color:var(--pink)}
 .cardio-row2{display:flex;gap:10px}
-.cardio-row2>div{flex:1}
+.cardio-row2>div{flex:1;min-width:0}
 .cardio-log-btn{width:100%;background:var(--pink);border:none;color:#111;font-size:14px;font-weight:700;padding:12px;border-radius:9px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:4px}
 .cardio-log-btn:hover{opacity:.9}
 .cardio-history{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
