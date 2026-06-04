@@ -53,8 +53,8 @@ const DEFAULT_PROGRAM=[
 // ── STATE ──
 const K={cfg:'mw_cfg',W:'mw_W',R:'mw_R',s:'mw_s',BW:'mw_BW',
   PROG:'mw_PROG',STEPS:'mw_STEPS',NOTES:'mw_NOTES',GOALS:'mw_GOALS',
-  CARDIO:'mw_CARDIO',CTPL:'mw_CTPL'};
-let cfg=null,W={},R={},BW=[],oldStep=2.5;
+  CARDIO:'mw_CARDIO',CTPL:'mw_CTPL',BWGOAL:'mw_BWGOAL'};
+let cfg=null,W={},R={},BW=[],oldStep=2.5,bwGoal=null;
 let PROG=null,STEPS={},NOTES={},GOALS={},CARDIO=[],CTPL=[];
 let activeTab=0,lastSynced=null;
 let undoSnapshot=null,undoTimer=null;
@@ -81,14 +81,14 @@ async function pushAll(){
   await Promise.all([
     sbSet('mw_cfg',cfg),sbSet('mw_W',W),sbSet('mw_R',R),sbSet('mw_BW',BW),
     sbSet('mw_PROG',PROG),sbSet('mw_STEPS',STEPS),sbSet('mw_NOTES',NOTES),
-    sbSet('mw_GOALS',GOALS),sbSet('mw_CARDIO',CARDIO),sbSet('mw_CTPL',CTPL),
+    sbSet('mw_GOALS',GOALS),sbSet('mw_CARDIO',CARDIO),sbSet('mw_CTPL',CTPL),sbSet('mw_BWGOAL',bwGoal),
   ]);
 }
 
 function persist(){
   ls.set(K.cfg,cfg);ls.set(K.W,W);ls.set(K.R,R);ls.set(K.BW,BW);
   ls.set(K.PROG,PROG);ls.set(K.STEPS,STEPS);ls.set(K.NOTES,NOTES);
-  ls.set(K.GOALS,GOALS);ls.set(K.CARDIO,CARDIO);ls.set(K.CTPL,CTPL);
+  ls.set(K.GOALS,GOALS);ls.set(K.CARDIO,CARDIO);ls.set(K.CTPL,CTPL);ls.set(K.BWGOAL,bwGoal);
   setSync('syncing','Saving…');
   pushAll().then(ok=>{lastSynced=new Date();setSync(ok?'synced':'offline',ok?'Synced '+lastSynced.toLocaleTimeString():'Offline — saved locally');});
 }
@@ -99,7 +99,7 @@ async function syncNow(){
     const r=await sbGetAll();
     if(!r){setSync('offline','Offline — changes saved locally');return;}
     let changed=false;
-    const map={cfg:'mw_cfg',W:'mw_W',R:'mw_R',BW:'mw_BW',PROG:'mw_PROG',STEPS:'mw_STEPS',NOTES:'mw_NOTES',GOALS:'mw_GOALS',CARDIO:'mw_CARDIO',CTPL:'mw_CTPL'};
+    const map={cfg:'mw_cfg',W:'mw_W',R:'mw_R',BW:'mw_BW',PROG:'mw_PROG',STEPS:'mw_STEPS',NOTES:'mw_NOTES',GOALS:'mw_GOALS',CARDIO:'mw_CARDIO',CTPL:'mw_CTPL',BWGOAL:'mw_BWGOAL'};
     for(const[local,remote]of Object.entries(map)){
       if(r[remote]!==null&&r[remote]!==undefined){
         ls.set('mw_'+local.replace(/^mw_/,''),r[remote]);
@@ -107,6 +107,7 @@ async function syncNow(){
         if(local==='BW')BW=r[remote];if(local==='PROG')PROG=r[remote];if(local==='STEPS')STEPS=r[remote];
         if(local==='NOTES')NOTES=r[remote];if(local==='GOALS')GOALS=r[remote];
         if(local==='CARDIO')CARDIO=r[remote];if(local==='CTPL')CTPL=r[remote];
+        if(local==='BWGOAL')bwGoal=r[remote];
         changed=true;
       }
     }
@@ -125,6 +126,7 @@ async function boot(){
   PROG=ls.get(K.PROG)||null;STEPS=ls.get(K.STEPS)||null;
   NOTES=ls.get(K.NOTES)||{};GOALS=ls.get(K.GOALS)||{};
   CARDIO=ls.get(K.CARDIO)||[];CTPL=ls.get(K.CTPL)||defaultCardioTpls();
+  bwGoal=ls.get(K.BWGOAL)??null;
 
   migrateRepsFormat();
 
@@ -155,6 +157,7 @@ function loadFromRemote(r){
   PROG=r['mw_PROG']||null;STEPS=r['mw_STEPS']||null;
   NOTES=r['mw_NOTES']||{};GOALS=r['mw_GOALS']||{};
   CARDIO=r['mw_CARDIO']||[];CTPL=r['mw_CTPL']||defaultCardioTpls();
+  bwGoal=r['mw_BWGOAL']??null;
   ls.set(K.cfg,cfg);ls.set(K.W,W);ls.set(K.R,R);ls.set(K.BW,BW);
   migrateRepsFormat();
 }
@@ -474,13 +477,30 @@ function renderManager(){
   let html='';
   PROG.forEach((b,bi)=>{
     html+=`<div class="mgr-block"><div class="mgr-block-title">${b.title}</div>`;
-    b.exercises.forEach(ex=>{
+    b.exercises.forEach((ex,ei)=>{
       const meta=ex.rMin===null?`${ex.sets}× timed`:`${ex.sets}×${ex.rMin}–${ex.rMax}`;
-      html+=`<div class="mgr-ex"><div class="mgr-ex-name">${ex.name}<div class="mgr-ex-meta">${meta} · step ${fmt(STEPS[ex.id]||2.5)}kg</div></div><button class="mgr-ex-btn" onclick="openRepEditFromMgr('${ex.id}')">✎</button><button class="mgr-ex-btn del" onclick="removeExercise('${ex.id}')">🗑</button></div>`;
+      const upDis=ei===0?'disabled':'';
+      const downDis=ei===b.exercises.length-1?'disabled':'';
+      html+=`<div class="mgr-ex">
+        <div class="mgr-reorder">
+          <button class="mgr-arrow" ${upDis} onclick="moveExercise(${bi},${ei},-1)">▲</button>
+          <button class="mgr-arrow" ${downDis} onclick="moveExercise(${bi},${ei},1)">▼</button>
+        </div>
+        <div class="mgr-ex-name">${ex.name}<div class="mgr-ex-meta">${meta} · step ${fmt(STEPS[ex.id]||2.5)}kg</div></div>
+        <button class="mgr-ex-btn" onclick="openRepEditFromMgr('${ex.id}')">✎</button>
+        <button class="mgr-ex-btn del" onclick="removeExercise('${ex.id}')">🗑</button>
+      </div>`;
     });
     html+=`<button class="mgr-add-btn" onclick="openAddExerciseFromMgr(${bi})">+ Add to ${b.title}</button></div>`;
   });
   c.innerHTML=html;
+}
+function moveExercise(bi,ei,dir){
+  const list=PROG[bi].exercises;
+  const ni=ei+dir;
+  if(ni<0||ni>=list.length)return;
+  [list[ei],list[ni]]=[list[ni],list[ei]];
+  persist();renderManager();render();restoreTab();
 }
 function openRepEditFromMgr(exId){openRepEdit(exId);}
 function openAddExerciseFromMgr(bi){openAddExercise(bi);}
@@ -593,13 +613,38 @@ function logBW(){const dateVal=document.getElementById('bwDate').value,kg=parseF
 function deleteBW(date){BW=BW.filter(e=>e.date!==date);persist();renderBW();}
 function renderBW(){
   document.getElementById('bwDate').value=isoToday();
+  // Sync goal input field
+  const gi=document.getElementById('bwGoal');if(gi)gi.value=bwGoal??'';
+  const gc=document.getElementById('bwGoalClear');if(gc)gc.style.display=bwGoal!=null?'inline-block':'none';
   const st=document.getElementById('bwStats');if(!BW.length){st.innerHTML='';document.getElementById('bwChartCard').style.display='none';document.getElementById('bwHistWrap').style.display='none';return;}
   const last=BW[BW.length-1],first=BW[0],delta=Math.round((last.kg-first.kg)*10)/10;const dStr=(delta>0?'+':'')+fmt(delta)+' kg',dCol=delta<=0?'var(--green)':'var(--red)';const min=Math.min(...BW.map(e=>e.kg)),max=Math.max(...BW.map(e=>e.kg));
-  st.innerHTML=`<div class="bw-stat"><div class="bw-stat-val">${fmt(last.kg)}</div><div class="bw-stat-lbl">Current</div></div><div class="bw-stat"><div class="bw-stat-val" style="color:${dCol}">${dStr}</div><div class="bw-stat-lbl">vs Start</div></div><div class="bw-stat"><div class="bw-stat-val">${fmt(min)}</div><div class="bw-stat-lbl">Lowest</div></div><div class="bw-stat"><div class="bw-stat-val">${fmt(max)}</div><div class="bw-stat-lbl">Highest</div></div>`;
+  let goalStat='';
+  if(bwGoal!=null){const remain=Math.round((last.kg-bwGoal)*10)/10;const reached=Math.abs(remain)<0.05;goalStat=`<div class="bw-stat"><div class="bw-stat-val" style="color:${reached?'var(--green)':'var(--orange)'}">${reached?'✓':fmt(Math.abs(remain))}</div><div class="bw-stat-lbl">${reached?'Goal!':(remain>0?'to go':'past goal')}</div></div>`;}
+  st.innerHTML=`<div class="bw-stat"><div class="bw-stat-val">${fmt(last.kg)}</div><div class="bw-stat-lbl">Current</div></div><div class="bw-stat"><div class="bw-stat-val" style="color:${dCol}">${dStr}</div><div class="bw-stat-lbl">vs Start</div></div>${goalStat}<div class="bw-stat"><div class="bw-stat-val">${fmt(min)}</div><div class="bw-stat-lbl">Lowest</div></div><div class="bw-stat"><div class="bw-stat-val">${fmt(max)}</div><div class="bw-stat-lbl">Highest</div></div>`;
   const cc=document.getElementById('bwChartCard');
-  if(BW.length>=2){cc.style.display='block';document.getElementById('bwChartSub').textContent=`${BW[0].date} → ${last.date} · ${BW.length} entries`;const SW=340,SH=100,P={t:10,r:14,b:28,l:42};const ws=BW.map(e=>e.kg),mn=Math.min(...ws),mx=Math.max(...ws),rng=mx-mn||0.5,pw=SW-P.l-P.r,ph=SH-P.t-P.b;const px=i=>P.l+i*(pw/(BW.length-1)),py=w=>P.t+ph-(((w-mn)/rng)*ph);const lp=BW.map((e,i)=>`${i===0?'M':'L'}${px(i).toFixed(1)},${py(e.kg).toFixed(1)}`).join(' ');const fp=lp+` L${px(BW.length-1).toFixed(1)},${(P.t+ph).toFixed(1)} L${P.l.toFixed(1)},${(P.t+ph).toFixed(1)} Z`;let dots='',xl='';BW.forEach((e,i)=>{dots+=`<circle cx="${px(i).toFixed(1)}" cy="${py(e.kg).toFixed(1)}" r="3.5" fill="var(--orange)" stroke="var(--bg)" stroke-width="1.5"/>`;if(i===0||i===BW.length-1)xl+=`<text x="${px(i).toFixed(1)}" y="${(SH-5).toFixed(1)}" text-anchor="${i===0?'start':'end'}" fill="var(--muted)" font-size="9">${e.date.slice(5)}</text>`;});const yl=`<text x="${(P.l-4).toFixed(1)}" y="${(P.t+5).toFixed(1)}" text-anchor="end" fill="var(--muted)" font-size="9">${fmt(mx)}</text><text x="${(P.l-4).toFixed(1)}" y="${(P.t+ph).toFixed(1)}" text-anchor="end" fill="var(--muted)" font-size="9">${fmt(mn)}</text>`;document.getElementById('bwChartSvg').innerHTML=`<svg class="chart" viewBox="0 0 ${SW} ${SH}" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="cgbw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--orange)" stop-opacity="0.25"/><stop offset="100%" stop-color="var(--orange)" stop-opacity="0.02"/></linearGradient></defs><line x1="${P.l}" y1="${P.t}" x2="${P.l}" y2="${P.t+ph}" stroke="var(--border)" stroke-width="1"/><line x1="${P.l}" y1="${P.t+ph}" x2="${P.l+pw}" y2="${P.t+ph}" stroke="var(--border)" stroke-width="1"/><path d="${fp}" fill="url(#cgbw)"/><path d="${lp}" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}${xl}${yl}</svg>`;}else cc.style.display='none';
+  if(BW.length>=2){
+    cc.style.display='block';
+    let subTxt=`${BW[0].date} → ${last.date} · ${BW.length} entries`;
+    if(bwGoal!=null)subTxt+=` · 🎯 ${fmt(bwGoal)} kg`;
+    document.getElementById('bwChartSub').innerHTML=subTxt;
+    const SW=340,SH=110,P={t:12,r:14,b:28,l:42};
+    const ws=BW.map(e=>e.kg);let mn=Math.min(...ws),mx=Math.max(...ws);
+    if(bwGoal!=null){mn=Math.min(mn,bwGoal);mx=Math.max(mx,bwGoal);}
+    const rng=mx-mn||0.5,pw=SW-P.l-P.r,ph=SH-P.t-P.b;
+    const px=i=>P.l+i*(pw/(BW.length-1)),py=w=>P.t+ph-(((w-mn)/rng)*ph);
+    const lp=BW.map((e,i)=>`${i===0?'M':'L'}${px(i).toFixed(1)},${py(e.kg).toFixed(1)}`).join(' ');
+    const fp=lp+` L${px(BW.length-1).toFixed(1)},${(P.t+ph).toFixed(1)} L${P.l.toFixed(1)},${(P.t+ph).toFixed(1)} Z`;
+    let dots='',xl='';
+    BW.forEach((e,i)=>{dots+=`<circle cx="${px(i).toFixed(1)}" cy="${py(e.kg).toFixed(1)}" r="3.5" fill="var(--orange)" stroke="var(--bg)" stroke-width="1.5"/>`;if(i===0||i===BW.length-1)xl+=`<text x="${px(i).toFixed(1)}" y="${(SH-5).toFixed(1)}" text-anchor="${i===0?'start':'end'}" fill="var(--muted)" font-size="9">${e.date.slice(5)}</text>`;});
+    const yl=`<text x="${(P.l-4).toFixed(1)}" y="${(P.t+5).toFixed(1)}" text-anchor="end" fill="var(--muted)" font-size="9">${fmt(mx)}</text><text x="${(P.l-4).toFixed(1)}" y="${(P.t+ph).toFixed(1)}" text-anchor="end" fill="var(--muted)" font-size="9">${fmt(mn)}</text>`;
+    let goalLine='';
+    if(bwGoal!=null){const gy=py(bwGoal).toFixed(1);goalLine=`<line x1="${P.l}" y1="${gy}" x2="${P.l+pw}" y2="${gy}" stroke="var(--green)" stroke-width="1.5" stroke-dasharray="5,4"/><text x="${P.l+pw}" y="${(parseFloat(gy)-4)}" text-anchor="end" fill="var(--green)" font-size="9" font-weight="700">🎯 ${fmt(bwGoal)}</text>`;}
+    document.getElementById('bwChartSvg').innerHTML=`<svg class="chart" viewBox="0 0 ${SW} ${SH}" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="cgbw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--orange)" stop-opacity="0.25"/><stop offset="100%" stop-color="var(--orange)" stop-opacity="0.02"/></linearGradient></defs><line x1="${P.l}" y1="${P.t}" x2="${P.l}" y2="${P.t+ph}" stroke="var(--border)" stroke-width="1"/><line x1="${P.l}" y1="${P.t+ph}" x2="${P.l+pw}" y2="${P.t+ph}" stroke="var(--border)" stroke-width="1"/><path d="${fp}" fill="url(#cgbw)"/><path d="${lp}" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${goalLine}${dots}${xl}${yl}</svg>`;
+  }else cc.style.display='none';
   const wrap=document.getElementById('bwHistWrap');wrap.style.display='block';const sorted=[...BW].reverse();document.getElementById('bwTblBody').innerHTML=sorted.map((e,i)=>{const prev=sorted[i+1],chg=prev?Math.round((e.kg-prev.kg)*10)/10:null;const cs=chg!==null?(chg>0?`<span style="color:var(--red)">+${fmt(chg)}</span>`:`<span style="color:var(--green)">${fmt(chg)}</span>`):'—';return `<tr><td>${e.date}</td><td class="bw-val">${fmt(e.kg)} kg</td><td>${cs}</td><td><button class="bw-del" onclick="deleteBW('${e.date}')">✕</button></td></tr>`;}).join('');
 }
+function setBWGoal(){const v=parseFloat(document.getElementById('bwGoal').value);if(isNaN(v)||v<20||v>500){showToast('Enter a valid goal');return;}bwGoal=Math.round(v*10)/10;persist();renderBW();showToast('🎯 Goal set');}
+function clearBWGoal(){bwGoal=null;persist();renderBW();}
 
 // ═══════════════════════════════════════════════════════
 //  CARDIO
