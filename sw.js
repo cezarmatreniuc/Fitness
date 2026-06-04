@@ -3,10 +3,11 @@
 // Data (weights, reps) lives in localStorage and syncs to
 // Supabase when online — unaffected by this file.
 
-const CACHE = 'my-workout-v1';
+const CACHE = 'my-workout-v2';
 const ASSETS = [
   './',
   './index.html',
+  './app.js',
   'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=Inter:wght@400;500;600&display=swap',
 ];
 
