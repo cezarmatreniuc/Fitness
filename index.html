@@ -10,7 +10,21 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="My Workout">
 <script>
-  if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      // When a new SW is waiting, show the update banner
+      reg.addEventListener('updatefound',()=>{
+        const nw=reg.installing;
+        nw.addEventListener('statechange',()=>{
+          if(nw.state==='installed'&&navigator.serviceWorker.controller){
+            document.getElementById('updateBanner').style.display='flex';
+          }
+        });
+      });
+    }).catch(()=>{});
+    // If the SW controller changes (new SW took over), reload
+    navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
+  }
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -52,11 +66,10 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .tab.chart.on{background:var(--blue);border-color:var(--blue);color:#111}
 .tab.bw.on{background:var(--orange);border-color:var(--orange);color:#111}
 .tab.progress.on{background:var(--purple);border-color:var(--purple);color:#fff}
-.tab.cardio.on{background:var(--pink);border-color:var(--pink);color:#111}
 
 /* SECTIONS */
-.section,.hist-section,.chart-section,.bw-section,.cardio-section,.progress-section{padding:12px 14px 0;display:none}
-.section.on,.hist-section.on,.chart-section.on,.bw-section.on,.cardio-section.on,.progress-section.on{display:block}
+.section,.hist-section,.chart-section,.bw-section,.progress-section{padding:12px 14px 0;display:none}
+.section.on,.hist-section.on,.chart-section.on,.bw-section.on.on,.progress-section.on{display:block}
 .sec-hd{margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .sec-title{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;text-transform:uppercase}
 .sec-sub{font-size:12px;color:var(--muted)}
@@ -212,37 +225,6 @@ input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-
 .bw-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 6px}
 .bw-del:hover{color:var(--red)}
 
-/* CARDIO */
-.cardio-log-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
-.cardio-log-card h3{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;margin-bottom:6px;color:var(--pink)}
-.cardio-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
-.cardio-tpls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-.cardio-tpl{background:var(--card2);border:1px solid var(--border);color:var(--text);font-size:12px;font-weight:600;padding:8px 12px;border-radius:8px;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;max-width:100%}
-.cardio-tpl:hover{border-color:var(--pink);color:var(--pink)}
-.cardio-tpl .tpl-del{color:var(--muted);font-size:13px;margin-left:2px;padding:2px;flex-shrink:0}
-.cardio-tpl .tpl-del:hover{color:var(--red)}
-.cardio-tpl.add-tpl{border-style:dashed;color:var(--muted)}
-.cardio-field{margin-bottom:10px}
-.cardio-field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase}
-.cardio-inp{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none}
-.cardio-inp:focus{border-color:var(--pink)}
-.cardio-row2{display:flex;gap:10px}
-.cardio-row2>div{flex:1;min-width:0}
-.cardio-log-btn{width:100%;background:var(--pink);border:none;color:#111;font-size:14px;font-weight:700;padding:12px;border-radius:9px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:4px}
-.cardio-log-btn:hover{opacity:.9}
-.cardio-history{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.cardio-history-hd{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;text-transform:uppercase;padding:10px 13px;color:var(--pink);border-bottom:1px solid var(--border);letter-spacing:.5px}
-.cardio-entry{padding:11px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-.cardio-entry:last-child{border-bottom:none}
-.cardio-entry-icon{font-size:20px;flex-shrink:0}
-.cardio-entry-main{flex:1;min-width:0}
-.cardio-entry-type{font-weight:600;font-size:14px}
-.cardio-entry-detail{font-size:12px;color:var(--muted);margin-top:2px}
-.cardio-entry-meta{text-align:right;flex-shrink:0}
-.cardio-entry-dur{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--pink)}
-.cardio-entry-date{font-size:11px;color:var(--muted)}
-.cardio-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px;flex-shrink:0}
-.cardio-del:hover{color:var(--red)}
 
 .divider{height:1px;background:var(--border);margin:16px 0}
 /* SHARED */
@@ -326,6 +308,11 @@ input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-
 </head>
 <body>
 
+<div id="updateBanner" style="display:none;position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--blue);color:#111;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;padding:10px 18px;border-radius:30px;z-index:1000;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.5);white-space:nowrap">
+  🔄 Update available
+  <button onclick="applyUpdate()" style="background:#111;color:var(--blue);border:none;font-weight:700;font-size:12px;padding:5px 12px;border-radius:20px;cursor:pointer;font-family:'Inter',sans-serif">Tap to update</button>
+</div>
+
 <div class="topbar">
   <h1>My <span>Workout</span></h1>
   <div class="week-pill" id="weekPill" onclick="openWeekModal()">Week 20</div>
@@ -398,21 +385,6 @@ input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-
   </div>
 </div>
 
-<div class="cardio-tpls" id="cardioTpls"></div>
-    <div class="cardio-field"><label>Activity</label><input class="cardio-inp" id="cardioType" placeholder="e.g. Run, Soccer, Norwegian 4×4"></div>
-    <div class="cardio-field"><label>Details (optional)</label><input class="cardio-inp" id="cardioDetail" placeholder="e.g. 5 km, 4×4 min intervals"></div>
-    <div class="cardio-row2">
-      <div class="cardio-field"><label>Duration (min)</label><input class="cardio-inp" id="cardioDur" type="number" placeholder="45"></div>
-      <div class="cardio-field"><label>Date</label><input class="cardio-inp" id="cardioDate" type="date"></div>
-    </div>
-    <button class="cardio-log-btn" onclick="logCardio()">Log Cardio</button>
-  </div>
-  <div class="cardio-history" id="cardioHistWrap" style="display:none">
-    <div class="cardio-history-hd">History</div>
-    <div id="cardioHistBody"></div>
-  </div>
-</div>
-
 <!-- MODALS -->
 <div class="modal-bg" id="weekModal"><div class="modal">
   <h2>Start <span id="modalNext">Week 21</span>?</h2>
@@ -428,11 +400,10 @@ input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-
   <h2>New <span>week</span></h2>
   <p id="mondayDesc"></p>
   <input type="hidden" id="mondayWeeksGone" value="1">
-  <div style="font-size:12px;color:var(--muted);margin-bottom:14px">What would you like to do?</div>
   <div style="display:flex;flex-direction:column;gap:9px">
-    <button class="mbtn confirm" onclick="confirmMondayProgress()">Progress — increase weights/reps →</button>
-    <button class="mbtn cancel" onclick="confirmMondayKeep()">Keep same — carry weights as-is</button>
-    <button class="mbtn cancel" onclick="dismissMonday()" style="font-size:12px;padding:8px">Remind me later</button>
+    <button class="mbtn confirm" onclick="confirmMondayProgress()">↑ Progress — increase weights / reps</button>
+    <button class="mbtn cancel" onclick="confirmMondayKeep()">= Keep same — same weights, same targets</button>
+    <button class="mbtn cancel" onclick="dismissMonday()" style="font-size:12px;padding:8px;opacity:.6">Remind me tomorrow</button>
   </div>
 </div></div>
 

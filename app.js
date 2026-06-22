@@ -208,12 +208,17 @@ function checkWeekPrompt(){
   const elapsed=Date.now()-cfg.weekStartTs;
   const weeksGone=Math.floor(elapsed/(7*24*3600*1000));
   if(weeksGone<1)return;
+
+  // Find the last week that actually has real data
+  const recordedWks=Object.keys(W).map(Number).filter(w=>Object.keys(W[w]||{}).length>0);
+  const lastRecorded=recordedWks.length?Math.max(...recordedWks):cfg.currentWeek;
   const targetWk=cfg.currentWeek+weeksGone;
-  // Build the prompt message
-  const desc=weeksGone===1
-    ?`A week has passed since Week ${cfg.currentWeek} started.`
-    :`${weeksGone} weeks have passed since Week ${cfg.currentWeek}. You would be on Week ${targetWk}.`;
-  document.getElementById('mondayDesc').textContent=desc;
+
+  const timeStr=weeksGone===1?'A week has passed':weeksGone+' weeks have passed';
+  document.getElementById('mondayDesc').innerHTML=
+    `${timeStr}. You are now on <b>Week ${targetWk}</b>.<br>
+     Last recorded workout: <b>Week ${lastRecorded}</b>.<br>
+     <span style="font-size:11px;color:var(--muted)">Either way, Week ${targetWk} inherits ${lastRecorded}'s weights.</span>`;
   document.getElementById('mondayWeeksGone').value=weeksGone;
   setTimeout(()=>document.getElementById('mondayModal').classList.add('open'),600);
 }
@@ -691,5 +696,13 @@ let toastT;
 function showToast(msg){clearTimeout(toastT);const t=document.getElementById('toast');t.innerHTML=msg;t.classList.add('show');t.classList.remove('pointer');toastT=setTimeout(()=>t.classList.remove('show'),2800);}
 function showToastUndo(label){clearTimeout(toastT);const t=document.getElementById('toast');t.classList.add('pointer');t.innerHTML=`${label}<button class="undo-btn" onclick="doUndo()">Undo</button>`;t.classList.add('show');toastT=setTimeout(()=>{t.classList.remove('show');undoSnapshot=null;},6000);}
 function hideToast(){clearTimeout(toastT);document.getElementById('toast').classList.remove('show');}
+
+function applyUpdate(){
+  // Tell the waiting SW to take over, then reload
+  navigator.serviceWorker.getRegistration().then(reg=>{
+    if(reg&&reg.waiting){reg.waiting.postMessage('skipWaiting');}
+    else location.reload();
+  });
+}
 
 boot();
