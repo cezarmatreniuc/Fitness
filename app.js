@@ -152,7 +152,24 @@ function runMigration(){
   PROG.forEach(b=>b.exercises.forEach(ex=>{ex.target=targetStr(ex);}));
   if(!STEPS){STEPS={};migrated=true;}
   allExercises().forEach(ex=>{if(STEPS[ex.id]===undefined)STEPS[ex.id]=oldStep||2.5;});
-  if(migrated){ls.set(K.PROG,PROG);ls.set(K.STEPS,STEPS);pushAll();}
+
+  // ── Self-heal: if W has data for weeks beyond cfg.currentWeek,
+  //    advance cfg to the highest recorded week so the app reflects reality.
+  //    This fixes the case where cfg got stuck (e.g. at week 20) while the
+  //    user kept logging workouts in later weeks via a different session.
+  const recordedWks=Object.keys(W).map(Number).filter(w=>Object.keys(W[w]||{}).length>0);
+  if(recordedWks.length&&cfg){
+    const highest=Math.max(...recordedWks);
+    if(highest>cfg.currentWeek){
+      console.log(`cfg self-heal: advancing currentWeek from ${cfg.currentWeek} to ${highest}`);
+      cfg.currentWeek=highest;
+      // Set weekStartTs to now so checkWeekPrompt measures from this correction
+      cfg.weekStartTs=Date.now();
+      migrated=true;
+    }
+  }
+
+  if(migrated){ls.set(K.cfg,cfg);ls.set(K.PROG,PROG);ls.set(K.STEPS,STEPS);pushAll();}
 }
 
 function migrateRepsFormat(){
@@ -209,16 +226,16 @@ function checkWeekPrompt(){
   const weeksGone=Math.floor(elapsed/(7*24*3600*1000));
   if(weeksGone<1)return;
 
-  // Find the last week that actually has real data
+  // Find the highest week that has actual exercise data
   const recordedWks=Object.keys(W).map(Number).filter(w=>Object.keys(W[w]||{}).length>0);
   const lastRecorded=recordedWks.length?Math.max(...recordedWks):cfg.currentWeek;
   const targetWk=cfg.currentWeek+weeksGone;
 
-  const timeStr=weeksGone===1?'A week has passed':weeksGone+' weeks have passed';
+  const timeStr=weeksGone===1?'A week has passed':`${weeksGone} weeks have passed`;
   document.getElementById('mondayDesc').innerHTML=
-    `${timeStr}. You are now on <b>Week ${targetWk}</b>.<br>
-     Last recorded workout: <b>Week ${lastRecorded}</b>.<br>
-     <span style="font-size:11px;color:var(--muted)">Either way, Week ${targetWk} inherits ${lastRecorded}'s weights.</span>`;
+    `${timeStr}. Time to start <b>Week ${targetWk}</b>.<br>
+     Last recorded: <b>Week ${lastRecorded}</b>.<br>
+     <span style="font-size:11px;color:var(--muted)">Week ${targetWk} will inherit Week ${lastRecorded}'s weights.</span>`;
   document.getElementById('mondayWeeksGone').value=weeksGone;
   setTimeout(()=>document.getElementById('mondayModal').classList.add('open'),600);
 }
