@@ -51,11 +51,12 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .tab.hist.on{background:var(--purple);border-color:var(--purple);color:#fff}
 .tab.chart.on{background:var(--blue);border-color:var(--blue);color:#111}
 .tab.bw.on{background:var(--orange);border-color:var(--orange);color:#111}
+.tab.progress.on{background:var(--purple);border-color:var(--purple);color:#fff}
 .tab.cardio.on{background:var(--pink);border-color:var(--pink);color:#111}
 
 /* SECTIONS */
-.section,.hist-section,.chart-section,.bw-section,.cardio-section{padding:12px 14px 0;display:none}
-.section.on,.hist-section.on,.chart-section.on,.bw-section.on,.cardio-section.on{display:block}
+.section,.hist-section,.chart-section,.bw-section,.cardio-section,.progress-section{padding:12px 14px 0;display:none}
+.section.on,.hist-section.on,.chart-section.on,.bw-section.on,.cardio-section.on,.progress-section.on{display:block}
 .sec-hd{margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .sec-title{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;text-transform:uppercase}
 .sec-sub{font-size:12px;color:var(--muted)}
@@ -243,6 +244,7 @@ input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-
 .cardio-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px;flex-shrink:0}
 .cardio-del:hover{color:var(--red)}
 
+.divider{height:1px;background:var(--border);margin:16px 0}
 /* SHARED */
 .export-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:4px;background:none;border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600;padding:10px;border-radius:8px;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;margin-bottom:4px}
 .export-btn:hover{border-color:var(--accent);color:var(--accent)}
@@ -339,8 +341,13 @@ input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-
 <div class="tabs" id="tabs"></div>
 <div id="content"></div>
 
-<!-- HISTORY -->
-<div class="hist-section" id="histSection">
+<!-- PROGRESS (merged charts + history) -->
+<div class="progress-section" id="progressSection">
+  <div class="chart-controls" style="margin-bottom:8px">
+    <select class="ex-picker" id="exPicker" onchange="renderCharts()"><option value="all">All exercises</option></select>
+  </div>
+  <div id="chartContent"></div>
+  <div class="divider" style="margin:16px 0 12px"></div>
   <div class="hist-top">
     <input class="hist-search" id="histSearch" placeholder="Filter exercise…" oninput="renderHistory()">
     <select class="wk-sel" id="histWkSel" onchange="renderHistory()"><option value="all">All weeks</option></select>
@@ -355,15 +362,7 @@ input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-
   </div>
   <div id="compareOut"></div>
   <div id="histContent"></div>
-  <button class="export-btn" onclick="exportCSV()">↓ Export full history as CSV</button>
-</div>
-
-<!-- CHARTS -->
-<div class="chart-section" id="chartSection">
-  <div class="chart-controls">
-    <select class="ex-picker" id="exPicker" onchange="renderCharts()"><option value="all">Overview — all exercises</option></select>
-  </div>
-  <div id="chartContent"></div>
+  <button class="export-btn" onclick="exportCSV()">↓ Export CSV</button>
 </div>
 
 <!-- BODYWEIGHT -->
@@ -389,18 +388,17 @@ input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-
     <div class="chart-sub" id="bwChartSub"></div>
     <div id="bwChartSvg"></div>
   </div>
+  <div class="bw-history" id="bwWeeklyWrap" style="display:none;margin-bottom:12px">
+    <div class="bw-history-hd">Weekly averages</div>
+    <table class="bw-tbl"><thead><tr><th>Week of</th><th>Avg weight</th><th>Entries</th><th>Change</th></tr></thead><tbody id="bwWeeklyBody"></tbody></table>
+  </div>
   <div class="bw-history" id="bwHistWrap" style="display:none">
     <div class="bw-history-hd">Log</div>
     <table class="bw-tbl"><thead><tr><th>Date</th><th>Weight</th><th>Change</th><th></th></tr></thead><tbody id="bwTblBody"></tbody></table>
   </div>
 </div>
 
-<!-- CARDIO -->
-<div class="cardio-section" id="cardioSection">
-  <div class="cardio-log-card">
-    <h3>🏃 Log Cardio</h3>
-    <div class="cardio-sub">Tap a template to autofill, or enter manually.</div>
-    <div class="cardio-tpls" id="cardioTpls"></div>
+<div class="cardio-tpls" id="cardioTpls"></div>
     <div class="cardio-field"><label>Activity</label><input class="cardio-inp" id="cardioType" placeholder="e.g. Run, Soccer, Norwegian 4×4"></div>
     <div class="cardio-field"><label>Details (optional)</label><input class="cardio-inp" id="cardioDetail" placeholder="e.g. 5 km, 4×4 min intervals"></div>
     <div class="cardio-row2">
@@ -418,19 +416,23 @@ input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-
 <!-- MODALS -->
 <div class="modal-bg" id="weekModal"><div class="modal">
   <h2>Start <span id="modalNext">Week 21</span>?</h2>
-  <p>Weights carry forward. Exercises where you logged the top rep auto-increase by their step, and reps reset to the bottom. The rep suggestion increments by 1 for everything else.</p>
-  <div class="modal-btns">
-    <button class="mbtn cancel" onclick="closeModal('weekModal')">Cancel</button>
-    <button class="mbtn confirm" onclick="advanceWeek()">Next week →</button>
+  <p>Choose how to advance. Progress increments reps/weight based on what you logged. Keep same carries everything forward unchanged.</p>
+  <div style="display:flex;flex-direction:column;gap:9px;margin-top:4px">
+    <button class="mbtn confirm" onclick="advanceWeekProgress()">Progress — increase weights/reps →</button>
+    <button class="mbtn cancel" onclick="advanceWeekKeep()">Keep same — carry weights as-is</button>
+    <button class="mbtn cancel" onclick="closeModal('weekModal')" style="font-size:12px;padding:8px">Cancel</button>
   </div>
 </div></div>
 
 <div class="modal-bg" id="mondayModal"><div class="modal">
-  <h2>New week detected</h2>
-  <p id="mondayDesc">It's been a week since you started Week 20. Would you like to switch to next week's progression?</p>
-  <div class="modal-btns">
-    <button class="mbtn cancel" onclick="dismissMonday()">Not yet</button>
-    <button class="mbtn confirm" onclick="confirmMonday()">Yes, next week →</button>
+  <h2>New <span>week</span></h2>
+  <p id="mondayDesc"></p>
+  <input type="hidden" id="mondayWeeksGone" value="1">
+  <div style="font-size:12px;color:var(--muted);margin-bottom:14px">What would you like to do?</div>
+  <div style="display:flex;flex-direction:column;gap:9px">
+    <button class="mbtn confirm" onclick="confirmMondayProgress()">Progress — increase weights/reps →</button>
+    <button class="mbtn cancel" onclick="confirmMondayKeep()">Keep same — carry weights as-is</button>
+    <button class="mbtn cancel" onclick="dismissMonday()" style="font-size:12px;padding:8px">Remind me later</button>
   </div>
 </div></div>
 
@@ -475,18 +477,6 @@ input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-
   <div class="modal-btns">
     <button class="mbtn cancel" onclick="closeModal('exModal')">Cancel</button>
     <button class="mbtn confirm" onclick="saveExercise()">Save</button>
-  </div>
-</div></div>
-
-<div class="modal-bg" id="cardioTplModal"><div class="modal">
-  <h2>Save Cardio Template</h2>
-  <div class="modal-field"><label>Template name</label><input class="modal-inp" id="ctName" placeholder="e.g. Norwegian 4×4"></div>
-  <div class="modal-field"><label>Activity</label><input class="modal-inp" id="ctType" placeholder="e.g. Run"></div>
-  <div class="modal-field"><label>Details</label><input class="modal-inp" id="ctDetail" placeholder="e.g. 4×4 min @ 90% + 3 min recovery"></div>
-  <div class="modal-field"><label>Default duration (min)</label><input class="modal-inp" id="ctDur" type="number" placeholder="32"></div>
-  <div class="modal-btns">
-    <button class="mbtn cancel" onclick="closeModal('cardioTplModal')">Cancel</button>
-    <button class="mbtn confirm" onclick="saveCardioTpl()">Save template</button>
   </div>
 </div></div>
 
