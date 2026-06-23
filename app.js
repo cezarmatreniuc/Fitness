@@ -94,24 +94,52 @@ async function syncNow(){
   try{
     const r=await sbGetAll();
     if(!r){setSync('offline','Offline — changes saved locally');return;}
-    let changed=false;
-    const map={
-      'mw_cfg':'cfg','mw_W':'W','mw_R':'R','mw_BW':'BW',
-      'mw_PROG':'PROG','mw_STEPS':'STEPS','mw_NOTES':'NOTES',
-      'mw_GOALS':'GOALS','mw_BWGOAL':'bwGoal'
-    };
-    for(const[rk,lk]of Object.entries(map)){
-      if(r[rk]!==null&&r[rk]!==undefined){
-        ls.set(rk,r[rk]);
-        if(lk==='cfg')cfg=r[rk];else if(lk==='W')W=r[rk];else if(lk==='R')R=r[rk];
-        else if(lk==='BW')BW=r[rk];else if(lk==='PROG')PROG=r[rk];else if(lk==='STEPS')STEPS=r[rk];
-        else if(lk==='NOTES')NOTES=r[rk];else if(lk==='GOALS')GOALS=r[rk];else if(lk==='bwGoal')bwGoal=r[rk];
-        changed=true;
+
+    // Compare local vs cloud — take whichever has the higher currentWeek
+    // This permanently fixes the case where phone data is ahead of Supabase
+    const cloudCfg=r['mw_cfg'];
+    const cloudW=r['mw_W']||{};
+    const localWks=Object.keys(W).map(Number);
+    const cloudWks=Object.keys(cloudW).map(Number);
+    const localHighest=localWks.length?Math.max(...localWks):0;
+    const cloudHighest=cloudWks.length?Math.max(...cloudWks):0;
+    const localWeek=cfg?.currentWeek??0;
+    const cloudWeek=cloudCfg?.currentWeek??0;
+
+    let useLocal=false;
+    if(localHighest>cloudHighest){
+      // Local has more week data — push local up, don't overwrite with cloud
+      useLocal=true;
+      console.log(`Sync: local W${localHighest} > cloud W${cloudHighest} — pushing local to cloud`);
+    } else if(cloudWeek>localWeek){
+      // Cloud is ahead — pull cloud down
+      useLocal=false;
+    } else {
+      // Equal or local is current — push local to keep cloud fresh
+      useLocal=true;
+    }
+
+    if(!useLocal){
+      // Load cloud into local
+      const map={
+        'mw_cfg':'cfg','mw_W':'W','mw_R':'R','mw_BW':'BW',
+        'mw_PROG':'PROG','mw_STEPS':'STEPS','mw_NOTES':'NOTES',
+        'mw_GOALS':'GOALS','mw_BWGOAL':'bwGoal'
+      };
+      for(const[rk,lk]of Object.entries(map)){
+        if(r[rk]!==null&&r[rk]!==undefined){
+          ls.set(rk,r[rk]);
+          if(lk==='cfg')cfg=r[rk];else if(lk==='W')W=r[rk];else if(lk==='R')R=r[rk];
+          else if(lk==='BW')BW=r[rk];else if(lk==='PROG')PROG=r[rk];else if(lk==='STEPS')STEPS=r[rk];
+          else if(lk==='NOTES')NOTES=r[rk];else if(lk==='GOALS')GOALS=r[rk];else if(lk==='bwGoal')bwGoal=r[rk];
+        }
       }
     }
+
+    // Always push local state to cloud to keep in sync
     await pushAll();
     lastSynced=new Date();setSync('synced','Synced '+lastSynced.toLocaleTimeString());
-    if(changed){backfillSuggestions();render();restoreTab();}
+    backfillSuggestions();render();restoreTab();
   }catch(e){setSync('offline','Offline — changes saved locally');}
 }
 
