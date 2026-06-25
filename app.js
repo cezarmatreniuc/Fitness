@@ -161,7 +161,9 @@ async function boot(){
     else setSync('local','Not set up yet');
     return;
   }
-  runMigration();backfillSuggestions();checkWeekPrompt();render();
+  runMigration();
+  if(!ls.get("mw_health_seeded"))seedAppleHealthBW();
+  backfillSuggestions();checkWeekPrompt();render();
   syncNow();setInterval(syncNow,30000);
 }
 
@@ -243,6 +245,17 @@ function finishSetup(){
   if(!R[wk]){R[wk]={};allExercises().forEach(ex=>{if(ex.rMin!==null)R[wk][ex.id]={reps:null,suggested:ex.rMin,isOverride:false};});}
   persist();document.getElementById('setupBg').classList.remove('open');render();
 }
+
+// Apple Health BW seed — 121 entries Oct 2025 to Jun 2026
+const APPLE_HEALTH_BW=[{date:"2025-10-10",kg:84.0},{date:"2025-11-03",kg:82.2},{date:"2025-11-04",kg:81.7},{date:"2025-11-06",kg:81.2},{date:"2025-11-07",kg:81.0},{date:"2025-11-08",kg:80.8},{date:"2025-11-09",kg:80.7},{date:"2025-11-10",kg:81.0},{date:"2025-11-11",kg:80.9},{date:"2025-11-12",kg:80.8},{date:"2025-11-14",kg:80.0},{date:"2025-11-16",kg:81.0},{date:"2025-11-17",kg:81.5},{date:"2025-11-18",kg:81.1},{date:"2025-11-20",kg:79.8},{date:"2025-11-21",kg:79.6},{date:"2025-11-22",kg:79.0},{date:"2025-11-24",kg:80.1},{date:"2025-11-25",kg:78.8},{date:"2025-11-27",kg:78.5},{date:"2025-11-29",kg:79.3},{date:"2025-11-30",kg:79.1},{date:"2025-12-02",kg:78.2},{date:"2025-12-05",kg:78.9},{date:"2025-12-07",kg:78.8},{date:"2025-12-08",kg:79.0},{date:"2025-12-09",kg:78.5},{date:"2025-12-10",kg:78.1},{date:"2025-12-11",kg:77.3},{date:"2025-12-12",kg:77.6},{date:"2025-12-15",kg:79.2},{date:"2025-12-16",kg:78.2},{date:"2025-12-18",kg:78.2},{date:"2025-12-20",kg:78.8},{date:"2025-12-21",kg:78.5},{date:"2025-12-22",kg:79.4},{date:"2025-12-24",kg:78.8},{date:"2025-12-25",kg:78.1},{date:"2026-01-11",kg:81.5},{date:"2026-01-13",kg:80.5},{date:"2026-01-15",kg:80.4},{date:"2026-01-16",kg:80.3},{date:"2026-01-18",kg:80.0},{date:"2026-01-19",kg:81.1},{date:"2026-01-21",kg:81.0},{date:"2026-01-22",kg:81.3},{date:"2026-01-23",kg:81.7},{date:"2026-01-28",kg:80.2},{date:"2026-01-29",kg:80.5},{date:"2026-01-30",kg:80.4},{date:"2026-01-31",kg:80.5},{date:"2026-02-01",kg:80.8},{date:"2026-02-05",kg:81.2},{date:"2026-02-10",kg:83.9},{date:"2026-02-12",kg:81.7},{date:"2026-02-13",kg:81.9},{date:"2026-02-14",kg:82.0},{date:"2026-02-15",kg:83.1},{date:"2026-02-16",kg:82.6},{date:"2026-02-23",kg:82.9},{date:"2026-03-23",kg:84.2},{date:"2026-03-24",kg:84.9},{date:"2026-03-25",kg:84.8},{date:"2026-03-26",kg:84.4},{date:"2026-03-27",kg:84.7},{date:"2026-03-30",kg:84.0},{date:"2026-04-02",kg:84.1},{date:"2026-04-03",kg:83.9},{date:"2026-04-07",kg:84.7},{date:"2026-04-08",kg:83.2},{date:"2026-04-09",kg:83.7},{date:"2026-04-11",kg:84.1},{date:"2026-04-12",kg:83.9},{date:"2026-04-13",kg:84.2},{date:"2026-04-14",kg:84.0},{date:"2026-04-16",kg:83.7},{date:"2026-04-17",kg:83.3},{date:"2026-04-19",kg:83.9},{date:"2026-04-20",kg:82.5},{date:"2026-04-22",kg:82.7},{date:"2026-04-29",kg:86.7},{date:"2026-04-30",kg:85.0},{date:"2026-05-01",kg:83.7},{date:"2026-05-02",kg:83.9},{date:"2026-05-03",kg:83.5},{date:"2026-05-09",kg:85.9},{date:"2026-05-11",kg:84.5},{date:"2026-05-12",kg:84.4},{date:"2026-05-13",kg:84.2},{date:"2026-05-15",kg:84.9},{date:"2026-05-16",kg:84.8},{date:"2026-05-18",kg:84.1},{date:"2026-05-19",kg:83.4},{date:"2026-05-20",kg:83.2},{date:"2026-05-22",kg:83.3},{date:"2026-05-23",kg:82.9},{date:"2026-05-24",kg:83.0},{date:"2026-05-25",kg:82.1},{date:"2026-05-26",kg:82.2},{date:"2026-05-27",kg:82.1},{date:"2026-05-29",kg:82.0},{date:"2026-05-30",kg:81.3},{date:"2026-05-31",kg:80.8},{date:"2026-06-01",kg:80.0},{date:"2026-06-02",kg:80.5},{date:"2026-06-03",kg:80.2},{date:"2026-06-04",kg:80.8},{date:"2026-06-05",kg:80.2},{date:"2026-06-06",kg:80.9},{date:"2026-06-07",kg:80.2},{date:"2026-06-08",kg:79.8},{date:"2026-06-09",kg:80.7},{date:"2026-06-12",kg:81.7},{date:"2026-06-13",kg:80.7},{date:"2026-06-14",kg:81.2},{date:"2026-06-15",kg:81.1},{date:"2026-06-16",kg:80.3},{date:"2026-06-22",kg:80.7},{date:"2026-06-23",kg:80.5},{date:"2026-06-24",kg:80.2},{date:"2026-06-25",kg:80.8}];
+function seedAppleHealthBW(){
+  if(!Array.isArray(BW))return;
+  const existing=new Set(BW.map(e=>e.date));
+  let added=0;
+  APPLE_HEALTH_BW.forEach(e=>{if(!existing.has(e.date)){BW.push(e);added++;}});
+  if(added>0){BW.sort((a,b)=>a.date.localeCompare(b.date));ls.set(K.BW,BW);ls.set('mw_health_seeded','1');pushAll();console.log('Health BW seeded:',added);}
+}
+
 const DEFAULT_W20={chest_press_30:32,barbell_row:72.5,cgp_smith:37.5,pullups:10,lat_raise:32.5,calf_stand:50,calf_sit:75,front_squat:57.5,rdl:72.5,leg_press_s:92.5,db_curls:20,mach_chest:62.5,pec_dec:65,cable_lat:6.25,lat_pull:84,cs_row:42.5,rev_tri:16.25,kick_back:6.25,preacher:32.5,bench_curls:16,ham_curl:60,leg_ext:65,leg_press_g:90,abs_mach:45};
 
 // ═══════════════════════════════════════════════════════
@@ -541,7 +554,7 @@ function renderManager(){
     html+=`<div class="mgr-block"><div class="mgr-block-title">${b.title}</div>`;
     b.exercises.forEach((ex,ei)=>{
       const meta=ex.rMin===null?`${ex.sets}× timed`:`${ex.sets}×${ex.rMin}–${ex.rMax}`;
-      html+=`<div class="mgr-ex"><div class="mgr-reorder"><button class="mgr-arrow" ${ei===0?'disabled':''} onclick="moveExercise(${bi},${ei},-1)">▲</button><button class="mgr-arrow" ${ei===b.exercises.length-1?'disabled':''} onclick="moveExercise(${bi},${ei},1)">▼</button></div><div class="mgr-ex-name">${ex.name}<div class="mgr-ex-meta">${meta} · step ${fmt(STEPS[ex.id]||2.5)}kg</div></div><button class="mgr-ex-btn" onclick="openRepEditFromMgr('${ex.id}')">✎</button><button class="mgr-ex-btn del" onclick="removeExercise('${ex.id}')">🗑</button></div>`;
+      html+=`<div class="mgr-ex"><div class="mgr-reorder"><button class="mgr-arrow" ${ei===0?'disabled':''} onclick="moveExercise(${bi},${ei},-1)">▲</button><button class="mgr-arrow" ${ei===b.exercises.length-1?'disabled':''} onclick="moveExercise(${bi},${ei},1)">▼</button></div><div class="mgr-ex-name">${ex.name}<div class="mgr-ex-meta">${meta} · step ${fmt(STEPS[ex.id]||2.5)}kg</div></div><button class="mgr-ex-btn" title="Move to another block" onclick="openMoveExercise('${ex.id}')">⇄</button><button class="mgr-ex-btn" onclick="openRepEditFromMgr('${ex.id}')">✎</button><button class="mgr-ex-btn del" onclick="removeExercise('${ex.id}')">🗑</button></div>`;
     });
     html+=`<button class="mgr-add-btn" onclick="openAddExerciseFromMgr(${bi})">+ Add to ${b.title}</button></div>`;
   });
@@ -549,6 +562,25 @@ function renderManager(){
 }
 function moveExercise(bi,ei,dir){const list=PROG[bi].exercises;const ni=ei+dir;if(ni<0||ni>=list.length)return;[list[ei],list[ni]]=[list[ni],list[ei]];persist();renderManager();render();restoreTab();}
 function openRepEditFromMgr(exId){openRepEdit(exId);}
+
+function openMoveExercise(exId){
+  const ex=exById(exId);if(!ex)return;
+  document.getElementById('moveExName').textContent=ex.name;
+  const opts=document.getElementById('moveExOptions');
+  opts.innerHTML=PROG.map((b,bi)=>{
+    if(b.exercises.some(e=>e.id===exId))return '';
+    return `<button class="mbtn cancel" style="text-align:left" onclick="doMoveExercise('${exId}',${bi});closeModal('moveExModal')">${b.title}</button>`;
+  }).join('');
+  document.getElementById('moveExModal').classList.add('open');
+}
+function doMoveExercise(exId,targetBi){
+  let ex=null;
+  PROG.forEach(b=>{const i=b.exercises.findIndex(e=>e.id===exId);if(i>=0){ex=b.exercises.splice(i,1)[0];}});
+  if(!ex)return;
+  PROG[targetBi].exercises.push(ex);
+  persist();renderManager();render();restoreTab();showToast('Moved to '+PROG[targetBi].title);
+}
+
 function openAddExerciseFromMgr(bi){closeModal('mgrModal');openAddExercise(bi);}
 
 // ═══════════════════════════════════════════════════════
@@ -648,6 +680,9 @@ function bwWeeklyAverages(){
 
 function renderBW(){
   document.getElementById('bwDate').value=isoToday();
+  const lastEntry=BW.length?BW[BW.length-1]:null;
+  const bwValEl=document.getElementById('bwVal');
+  if(bwValEl)bwValEl.placeholder=lastEntry?String(lastEntry.kg):'75.0';
   const gi=document.getElementById('bwGoal');if(gi)gi.value=bwGoal??'';
   const gc=document.getElementById('bwGoalClear');if(gc)gc.style.display=bwGoal!=null?'inline-block':'none';
   const st=document.getElementById('bwStats');
@@ -660,8 +695,14 @@ function renderBW(){
   // Chart
   const cc=document.getElementById('bwChartCard');
   if(BW.length>=2){
-    cc.style.display='block';let subTxt=`${first.date} → ${last.date} · ${BW.length} entries`;if(bwGoal!=null)subTxt+=` · 🎯 ${fmt(bwGoal)} kg`;document.getElementById('bwChartSub').innerHTML=subTxt;
-    const SW=340,SH=110,P={t:12,r:14,b:28,l:42};const ws=BW.map(e=>e.kg);let mn=Math.min(...ws),mx2=Math.max(...ws);if(bwGoal!=null){mn=Math.min(mn,bwGoal);mx2=Math.max(mx2,bwGoal);}const rng=mx2-mn||0.5,pw=SW-P.l-P.r,ph=SH-P.t-P.b;const px=i=>P.l+i*(pw/(BW.length-1)),py=w=>P.t+ph-(((w-mn)/rng)*ph);const lp=BW.map((e,i)=>`${i===0?'M':'L'}${px(i).toFixed(1)},${py(e.kg).toFixed(1)}`).join(' ');const fp=lp+` L${px(BW.length-1).toFixed(1)},${(P.t+ph).toFixed(1)} L${P.l.toFixed(1)},${(P.t+ph).toFixed(1)} Z`;let dots='',xl='';BW.forEach((e,i)=>{dots+=`<circle cx="${px(i).toFixed(1)}" cy="${py(e.kg).toFixed(1)}" r="3.5" fill="var(--orange)" stroke="var(--bg)" stroke-width="1.5"/>`;if(i===0||i===BW.length-1)xl+=`<text x="${px(i).toFixed(1)}" y="${(SH-5).toFixed(1)}" text-anchor="${i===0?'start':'end'}" fill="var(--muted)" font-size="9">${e.date.slice(5)}</text>`;});const yl=`<text x="${(P.l-4).toFixed(1)}" y="${(P.t+5).toFixed(1)}" text-anchor="end" fill="var(--muted)" font-size="9">${fmt(mx2)}</text><text x="${(P.l-4).toFixed(1)}" y="${(P.t+ph).toFixed(1)}" text-anchor="end" fill="var(--muted)" font-size="9">${fmt(mn)}</text>`;let goalLine='';if(bwGoal!=null){const gy=py(bwGoal).toFixed(1);goalLine=`<line x1="${P.l}" y1="${gy}" x2="${P.l+pw}" y2="${gy}" stroke="var(--green)" stroke-width="1.5" stroke-dasharray="5,4"/><text x="${P.l+pw}" y="${(parseFloat(gy)-4)}" text-anchor="end" fill="var(--green)" font-size="9" font-weight="700">🎯 ${fmt(bwGoal)}</text>`;}
+    // Chart shows last 30 days only — stats and log table still use full BW
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);const cutoffStr=cutoff.toISOString().split('T')[0];
+    const chartBW=BW.filter(e=>e.date>=cutoffStr);
+    const chartData=chartBW.length>=2?chartBW:BW.slice(-30); // fallback if <2 in window
+    cc.style.display='block';
+    let subTxt=`Last 30 days · ${chartData.length} entries`;if(bwGoal!=null)subTxt+=` · 🎯 ${fmt(bwGoal)} kg`;
+    document.getElementById('bwChartSub').innerHTML=subTxt;
+    const SW=340,SH=110,P={t:12,r:14,b:28,l:42};const ws=chartData.map(e=>e.kg);let mn=Math.min(...ws),mx2=Math.max(...ws);if(bwGoal!=null){mn=Math.min(mn,bwGoal);mx2=Math.max(mx2,bwGoal);}const rng=mx2-mn||0.5,pw=SW-P.l-P.r,ph=SH-P.t-P.b;const px=i=>P.l+i*(pw/(chartData.length-1)),py=w=>P.t+ph-(((w-mn)/rng)*ph);const lp=chartData.map((e,i)=>`${i===0?'M':'L'}${px(i).toFixed(1)},${py(e.kg).toFixed(1)}`).join(' ');const fp=lp+` L${px(chartData.length-1).toFixed(1)},${(P.t+ph).toFixed(1)} L${P.l.toFixed(1)},${(P.t+ph).toFixed(1)} Z`;let dots='',xl='';chartData.forEach((e,i)=>{dots+=`<circle cx="${px(i).toFixed(1)}" cy="${py(e.kg).toFixed(1)}" r="3.5" fill="var(--orange)" stroke="var(--bg)" stroke-width="1.5"/>`;if(i===0||i===chartData.length-1)xl+=`<text x="${px(i).toFixed(1)}" y="${(SH-5).toFixed(1)}" text-anchor="${i===0?'start':'end'}" fill="var(--muted)" font-size="9">${e.date.slice(5)}</text>`;});const yl=`<text x="${(P.l-4).toFixed(1)}" y="${(P.t+5).toFixed(1)}" text-anchor="end" fill="var(--muted)" font-size="9">${fmt(mx2)}</text><text x="${(P.l-4).toFixed(1)}" y="${(P.t+ph).toFixed(1)}" text-anchor="end" fill="var(--muted)" font-size="9">${fmt(mn)}</text>`;let goalLine='';if(bwGoal!=null){const gy=py(bwGoal).toFixed(1);goalLine=`<line x1="${P.l}" y1="${gy}" x2="${P.l+pw}" y2="${gy}" stroke="var(--green)" stroke-width="1.5" stroke-dasharray="5,4"/><text x="${P.l+pw}" y="${(parseFloat(gy)-4)}" text-anchor="end" fill="var(--green)" font-size="9" font-weight="700">🎯 ${fmt(bwGoal)}</text>`;}
     document.getElementById('bwChartSvg').innerHTML=`<svg class="chart" viewBox="0 0 ${SW} ${SH}" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="cgbw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--orange)" stop-opacity="0.25"/><stop offset="100%" stop-color="var(--orange)" stop-opacity="0.02"/></linearGradient></defs><line x1="${P.l}" y1="${P.t}" x2="${P.l}" y2="${P.t+ph}" stroke="var(--border)" stroke-width="1"/><line x1="${P.l}" y1="${P.t+ph}" x2="${P.l+pw}" y2="${P.t+ph}" stroke="var(--border)" stroke-width="1"/><path d="${fp}" fill="url(#cgbw)"/><path d="${lp}" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${goalLine}${dots}${xl}${yl}</svg>`;
   }else cc.style.display='none';
 

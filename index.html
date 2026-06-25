@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>My Workout</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0f0f12">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="My Workout">
@@ -30,10 +30,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0f0f12;--card:#18181d;--card2:#202026;--border:#28282f;
-  --accent:#caff00;--adim:rgba(202,255,0,.13);--adim2:rgba(202,255,0,.06);
-  --text:#ededf5;--muted:#5a5a6e;--red:#ff3b3b;--green:#39e07a;--gdim:rgba(57,224,122,.13);
-  --purple:#a78bfa;--blue:#60a5fa;--orange:#fb923c;--pink:#f472b6;--r:10px;
+  --bg:#000000;--card:#1C1C1E;--card2:#2C2C2E;--border:#3A3A3C;
+  --accent:#0A84FF;--adim:rgba(10,132,255,.18);--adim2:rgba(10,132,255,.08);
+  --text:#FFFFFF;--muted:#8E8E93;--red:#FF375F;--green:#30D158;--gdim:rgba(48,209,88,.15);
+  --purple:#BF5AF2;--blue:#0A84FF;--orange:#FF9F0A;--pink:#FF375F;--r:12px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;padding-bottom:60px;min-height:100dvh}
@@ -42,8 +42,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .topbar{background:var(--bg);border-bottom:1px solid var(--border);padding:10px 14px;position:sticky;top:0;z-index:300;display:flex;align-items:center;gap:8px}
 .topbar h1{font-family:'Barlow Condensed',sans-serif;font-size:23px;font-weight:900;text-transform:uppercase;letter-spacing:-.5px;flex:1;line-height:1}
 .topbar h1 span{color:var(--accent)}
-.week-pill{background:var(--adim);color:var(--accent);font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;border:1px solid rgba(202,255,0,.3);white-space:nowrap;cursor:pointer;user-select:none;transition:background .15s;flex-shrink:0}
-.week-pill:hover{background:rgba(202,255,0,.22)}
+.week-pill{background:var(--adim);color:var(--accent);font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;border:1px solid rgba(10,132,255,.4);white-space:nowrap;cursor:pointer;user-select:none;transition:background .15s;flex-shrink:0}
+.week-pill:hover{background:rgba(10,132,255,.28)}
 .burger{background:none;border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
 .burger:hover{border-color:var(--accent);color:var(--accent)}
 
@@ -61,7 +61,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .tabs{padding:10px 14px 8px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;background:var(--bg);position:sticky;top:55px;z-index:299}
 .tabs::-webkit-scrollbar{display:none}
 .tab{background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0;font-family:'Inter',sans-serif}
-.tab.on{background:var(--accent);border-color:var(--accent);color:#111}
+.tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .tab.hist.on{background:var(--purple);border-color:var(--purple);color:#fff}
 .tab.chart.on{background:var(--blue);border-color:var(--blue);color:#111}
 .tab.bw.on{background:var(--orange);border-color:var(--orange);color:#111}
@@ -94,8 +94,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 
 /* CARD */
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden;transition:border-color .2s}
-.card.adj{border-color:rgba(202,255,0,.45)}
-.card.progressed{border-color:rgba(57,224,122,.45)}
+.card.adj{border-color:rgba(10,132,255,.45)}
+.card.progressed{border-color:rgba(48,209,88,.45)}
 .card-main{padding:13px 13px 11px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .ex-info{flex:1;min-width:0}
 .ex-name-row{display:flex;align-items:center;gap:7px;margin-bottom:3px}
@@ -103,9 +103,9 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .note-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:0;position:relative;flex-shrink:0;line-height:1;opacity:.5;transition:opacity .2s}
 .note-btn:hover{opacity:1}
 .note-btn.has-note{opacity:1}
-.note-dot{position:absolute;top:-2px;right:-3px;width:7px;height:7px;border-radius:50%;background:var(--accent);border:1px solid var(--bg)}
+.note-dot{position:absolute;top:-2px;right:-3px;width:7px;height:7px;border-radius:50%;background:var(--red);border:1px solid var(--bg)}
 .chg-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;vertical-align:middle}
-.chg-badge.up{background:rgba(57,224,122,.15);color:var(--green);border:1px solid rgba(57,224,122,.3)}
+.chg-badge.up{background:rgba(48,209,88,.15);color:var(--green);border:1px solid rgba(48,209,88,.3)}
 .chg-badge.dn{background:rgba(255,59,59,.1);color:var(--red);border:1px solid rgba(255,59,59,.25)}
 .ex-tgt{font-size:12px;color:var(--muted)}
 .ww{display:flex;align-items:center;background:var(--card2);border:1px solid var(--border);border-radius:9px;overflow:hidden;flex-shrink:0}
@@ -113,14 +113,14 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .wbtn:hover,.wbtn:active{background:var(--adim);color:var(--accent)}
 .wc{display:flex;flex-direction:column;align-items:center;padding:0 3px;min-width:64px;cursor:pointer;user-select:none}
 .wval{font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:700;color:var(--text);line-height:1;transition:color .2s}
-.wval.ch{color:var(--accent)}
+.wval.ch{color:var(--blue)}
 .wunit{font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:1px}
 .winput{font-family:'Barlow Condensed',sans-serif;font-size:25px;font-weight:700;color:var(--accent);background:transparent;border:none;border-bottom:2px solid var(--accent);outline:none;width:64px;text-align:center;padding:0}
 .card-foot{padding:8px 13px 9px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .plan-txt{font-size:12px;color:var(--muted);flex:1;min-width:0;line-height:1.5}
 .plan-prev{color:rgba(237,237,245,.28);font-size:11px}
 .plan-arr{color:var(--accent);margin:0 3px}
-.prog-hint{font-size:11px;color:var(--green);background:var(--gdim);padding:2px 7px;border-radius:5px;border:1px solid rgba(57,224,122,.2);white-space:nowrap}
+.prog-hint{font-size:11px;color:var(--green);background:var(--gdim);padding:2px 7px;border-radius:5px;border:1px solid rgba(48,209,88,.25);white-space:nowrap}
 .rst{font-size:11px;color:var(--muted);text-decoration:underline;cursor:pointer;white-space:nowrap}
 .rst:hover{color:var(--red)}
 .reps-row{padding:8px 13px 9px;border-top:1px solid var(--border);background:var(--adim2);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -128,7 +128,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .reps-btns{display:flex;gap:5px;flex-wrap:wrap;align-items:center;flex:1}
 .rep-btn{font-size:13px;font-weight:700;min-width:36px;padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card2);color:var(--muted);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;text-align:center}
 .rep-btn:hover{border-color:var(--accent);color:var(--accent)}
-.rep-btn.sugg{border-color:rgba(57,224,122,.5);color:rgba(57,224,122,.75);background:rgba(57,224,122,.06)}
+.rep-btn.sugg{border-color:rgba(10,132,255,.5);color:rgba(10,132,255,.9);background:rgba(10,132,255,.08)}
 .rep-btn.sel{background:var(--green);border-color:var(--green);color:#111}
 .rep-btn.cust{min-width:32px;padding:5px 8px}
 .override-note{font-size:10px;color:rgba(251,146,60,.8);width:100%;padding-top:2px;font-style:italic}
@@ -198,21 +198,21 @@ svg.chart{width:100%;display:block}
 /* BODYWEIGHT */
 .bw-log-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
 .bw-log-card h3{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;margin-bottom:14px;color:var(--orange)}
-.bw-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px}
-.bw-inp-wrap{flex:1 1 110px;min-width:0}
+.bw-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;width:100%}
+.bw-inp-wrap{flex:1;min-width:0}
 /* iOS Safari: native date/number inputs have an intrinsic min width and
    ignore width:100% inside flex rows, causing them to overlap neighbours.
    Normalising appearance + min-width:0 forces them to respect their box. */
 input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%}
 .bw-inp[type=date]{text-align:center}
 .bw-inp-wrap label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase}
-.bw-inp{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;padding:9px 12px;border-radius:9px;outline:none}
+.bw-inp{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;padding:9px 10px;border-radius:9px;outline:none}
 .bw-inp:focus{border-color:var(--orange)}
-.bw-unit{display:flex;align-items:center;padding:9px 12px;background:var(--card2);border:1px solid var(--border);border-radius:9px;font-size:14px;font-weight:600;color:var(--muted)}
-.bw-log-btn{background:var(--orange);border:none;color:#111;font-size:14px;font-weight:700;padding:11px 18px;border-radius:9px;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;flex-shrink:0;height:50px}
+.bw-unit{display:flex;align-items:center;padding:9px 10px;background:var(--card2);border:1px solid var(--border);border-radius:9px;font-size:13px;font-weight:600;color:var(--muted);flex-shrink:0}
+.bw-log-btn{background:var(--orange);border:none;color:#000;font-size:14px;font-weight:700;padding:0 18px;border-radius:9px;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;flex-shrink:0;height:50px;align-self:flex-end}
 .bw-log-btn:hover{opacity:.9}
 .bw-stat-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
-.bw-stat{flex:1;min-width:70px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:9px 10px;text-align:center}
+.bw-stat{flex:1 1 calc(50% - 5px);max-width:calc(50% - 5px);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:9px 10px;text-align:center}
 .bw-stat-val{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--orange);line-height:1}
 .bw-stat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
 .bw-history{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
@@ -242,7 +242,7 @@ input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-
 .modal p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:18px}
 .modal-btns{display:flex;gap:10px}
 .mbtn{flex:1;padding:12px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;border:none;font-family:'Inter',sans-serif}
-.mbtn.confirm{background:var(--accent);color:#111}
+.mbtn.confirm{background:var(--accent);color:#fff}
 .mbtn.cancel{background:var(--card2);color:var(--muted);border:1px solid var(--border)}
 .mbtn.danger{background:var(--red);color:#fff}
 .modal-field{margin-bottom:14px}
@@ -492,6 +492,15 @@ input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-
   <div id="mgrContent"></div>
   <div class="modal-btns" style="margin-top:16px">
     <button class="mbtn confirm" onclick="closeModal('mgrModal')">Done</button>
+  </div>
+</div></div>
+
+<div class="modal-bg" id="moveExModal"><div class="modal">
+  <h2>Move <span id="moveExName">Exercise</span></h2>
+  <p>Choose which block to move it to.</p>
+  <div id="moveExOptions" style="display:flex;flex-direction:column;gap:8px"></div>
+  <div class="modal-btns" style="margin-top:14px">
+    <button class="mbtn cancel" onclick="closeModal('moveExModal')">Cancel</button>
   </div>
 </div></div>
 
