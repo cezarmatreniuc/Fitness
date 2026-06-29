@@ -263,36 +263,45 @@ const DEFAULT_W20={chest_press_30:32,barbell_row:72.5,cgp_smith:37.5,pullups:10,
 // ═══════════════════════════════════════════════════════
 function checkWeekPrompt(){
   if(!cfg)return;
-  const elapsed=Date.now()-cfg.weekStartTs;
-  const weeksGone=Math.floor(elapsed/(7*24*3600*1000));
-  if(weeksGone<1)return;
-
-  // Find the highest week that has actual exercise data
+  // Fire when today is on or after the next Monday that was set when we last advanced.
+  // This means the prompt appears automatically the first time you open the app
+  // on or after Monday — regardless of what time you actually advanced last week.
+  const now=Date.now();
+  if(now<cfg.weekStartTs)return; // not yet Monday
+  const weeksGone=Math.max(1,Math.floor((now-cfg.weekStartTs)/(7*24*3600*1000))+1);
   const recordedWks=Object.keys(W).map(Number).filter(w=>Object.keys(W[w]||{}).length>0);
   const lastRecorded=recordedWks.length?Math.max(...recordedWks):cfg.currentWeek;
   const targetWk=cfg.currentWeek+weeksGone;
-
-  const timeStr=weeksGone===1?'A week has passed':`${weeksGone} weeks have passed`;
+  const timeStr=weeksGone===1?'A new week has started':`${weeksGone} weeks have passed`;
   document.getElementById('mondayDesc').innerHTML=
     `${timeStr}. Time to start <b>Week ${targetWk}</b>.<br>
      Last recorded: <b>Week ${lastRecorded}</b>.<br>
-     <span style="font-size:11px;color:var(--muted)">Week ${targetWk} will inherit Week ${lastRecorded}'s weights.</span>`;
+     <span style="font-size:11px;color:var(--muted)">Week ${targetWk} inherits Week ${lastRecorded}'s weights.</span>`;
   document.getElementById('mondayWeeksGone').value=weeksGone;
   setTimeout(()=>document.getElementById('mondayModal').classList.add('open'),600);
 }
 
+function nextMondayTs(){
+  // Returns timestamp of next Monday 00:00 local time
+  // so the week-change prompt fires reliably when you first open the app Monday
+  const d=new Date();
+  const day=d.getDay(); // 0=Sun, 1=Mon … 6=Sat
+  const daysUntil=day===1?7:(8-day)%7; // days until next Monday (if today is Mon, next Mon)
+  d.setDate(d.getDate()+daysUntil);
+  d.setHours(0,0,0,0);
+  return d.getTime();
+}
+
 function dismissMonday(){
-  // Snooze for 24h — don't advance week number
-  cfg.weekStartTs=Date.now()-(6*24*3600*1000); // keep it close so it re-prompts tomorrow
+  // Snooze — push weekStartTs so it re-prompts in ~24h
+  cfg.weekStartTs=Date.now()-(6*24*3600*1000);
   persist();closeModal('mondayModal');
 }
 
 function confirmMondayProgress(){
   const weeksGone=parseInt(document.getElementById('mondayWeeksGone').value)||1;
   closeModal('mondayModal');
-  // Advance one week with full progression
   doAdvance(true);
-  // If more than 1 week gone, advance remaining weeks keeping same weights (no extra progression)
   for(let i=1;i<weeksGone;i++)doAdvance(false);
   persist();render();showToast('Week '+cfg.currentWeek+' started!');
 }
@@ -300,27 +309,59 @@ function confirmMondayProgress(){
 function confirmMondayKeep(){
   const weeksGone=parseInt(document.getElementById('mondayWeeksGone').value)||1;
   closeModal('mondayModal');
-  // Advance to correct week number but carry weights/reps as-is (no progression)
   for(let i=0;i<weeksGone;i++)doAdvance(false);
-  persist();render();showToast('Week '+cfg.currentWeek+' — same weights carried forward');
+  persist();render();showToast('Week '+cfg.currentWeek+' — same weights');
 }
 
 function openWeekModal(){document.getElementById('modalNext').textContent='Week '+(cfg.currentWeek+1);document.getElementById('weekModal').classList.add('open');}
 function advanceWeekProgress(){closeModal('weekModal');doAdvance(true);persist();render();showToast('Week '+cfg.currentWeek+' started!');}
 function advanceWeekKeep(){closeModal('weekModal');doAdvance(false);persist();render();showToast('Week '+cfg.currentWeek+' — same weights');}
 
+// Recalculate progression for the CURRENT week — only fixes exercises where
+// reps haven't been logged yet and weight wasn't bumped when it should have been.
+// Safe to call at any time without losing work already done this week.
+function recalcCurrentWeek(){
+  const wk=cfg.currentWeek;
+  const dataWks=Object.keys(W).map(Number).filter(w=>w<wk);
+  if(!dataWks.length){showToast('No previous week data');return;}
+  const srcWk=Math.max(...dataWks);
+  const pW=W[srcWk]||{},pR=R[srcWk]||{};
+  let fixed=0;
+  allExercises().forEach(ex=>{
+    if(ex.rMin===null)return;
+    const curW=W[wk]?.[ex.id];
+    const prevW=pW[ex.id];
+    if(curW===undefined||prevW===undefined)return;
+    const rd=R[wk]?.[ex.id];
+    // Only touch exercises where reps haven't been logged yet this week
+    if(rd?.reps!=null)return;
+    const step=STEPS[ex.id]||2.5;
+    const prd=pR[ex.id];
+    const logged=prd?.reps??null;
+    const prevSugg=prd?.suggested??ex.rMin;
+    const effectiveReps=logged!==null?logged:prevSugg;
+    const hitTop=effectiveReps!==null&&effectiveReps>=ex.rMax;
+    // Correct the weight if it should have been bumped
+    if(hitTop&&Math.abs(curW-prevW)<0.001){
+      W[wk][ex.id]=Math.round((prevW+step)*1000)/1000;
+      R[wk][ex.id]={reps:null,suggested:ex.rMin,isOverride:false};
+      fixed++;
+    }
+  });
+  if(fixed>0){persist();render();restoreTab();showToast(`Fixed ${fixed} exercise${fixed>1?'s':''}`);}
+  else showToast('Nothing to fix — all correct');
+}
+
 // ── Core advance logic ──
 // progress=true  → auto-increment weights/reps based on last week's performance
 // progress=false → carry weights/reps exactly as-is (skipped week / travel)
 function doAdvance(progress){
   const prev=cfg.currentWeek,next=prev+1;
-  // Find the last week that actually has data (handles multi-week gaps)
   const dataWks=Object.keys(W).map(Number).filter(w=>w<=prev);
   const srcWk=dataWks.length?Math.max(...dataWks):prev;
   const pW=W[srcWk]||{},pR=R[srcWk]||{};
 
-  // Only skip if W[next] already has real exercise data — an empty {} means
-  // a previous advance was interrupted and we should redo it
+  // Only skip if W[next] already has real exercise data
   const nextHasData=W[next]&&allExercises().some(ex=>W[next][ex.id]!==undefined);
   if(!nextHasData){
     W[next]={};R[next]={};
@@ -331,10 +372,7 @@ function doAdvance(progress){
       const logged=rd?.reps??null;
       const prevSugg=rd?.suggested??ex.rMin;
 
-      if(ex.rMin===null){
-        W[next][ex.id]=w;
-        return;
-      }
+      if(ex.rMin===null){W[next][ex.id]=w;return;}
 
       if(!progress){
         W[next][ex.id]=w;
@@ -342,25 +380,21 @@ function doAdvance(progress){
         return;
       }
 
-      // hitTop = user explicitly logged rMax, OR they logged nothing but suggestion
-      // was already at rMax (meaning they hit it the prior week and may have just
-      // forgotten to tap the rep button — give benefit of the doubt)
+      // hitTop if user logged rMax, OR suggestion was already at rMax
+      // (catches forgetting to tap the rep button)
       const effectiveReps=logged!==null?logged:prevSugg;
       const hitTop=effectiveReps!==null&&effectiveReps>=ex.rMax;
 
       W[next][ex.id]=hitTop?Math.round((w+step)*1000)/1000:w;
       let ns;
-      if(hitTop){
-        ns=ex.rMin; // weight bumped → reset rep target to bottom of range
-      }else{
-        // Increment suggestion by 1 from what was logged (or the previous suggestion)
-        const base=logged!==null?logged:prevSugg;
-        ns=Math.min((base??ex.rMin)+1,ex.rMax);
-      }
+      if(hitTop){ns=ex.rMin;}
+      else{const base=logged!==null?logged:prevSugg;ns=Math.min((base??ex.rMin)+1,ex.rMax);}
       R[next][ex.id]={reps:null,suggested:ns,isOverride:false};
     });
   }
-  cfg.currentWeek=next;cfg.weekStartTs=Date.now();
+  cfg.currentWeek=next;
+  // Anchor to next Monday so the prompt fires reliably when app is opened that day
+  cfg.weekStartTs=nextMondayTs();
 }
 
 // ═══════════════════════════════════════════════════════

@@ -392,7 +392,11 @@ input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-
   <div style="display:flex;flex-direction:column;gap:9px;margin-top:4px">
     <button class="mbtn confirm" onclick="advanceWeekProgress()">Progress — increase weights/reps →</button>
     <button class="mbtn cancel" onclick="advanceWeekKeep()">Keep same — carry weights as-is</button>
-    <button class="mbtn cancel" onclick="closeModal('weekModal')" style="font-size:12px;padding:8px">Cancel</button>
+    <button class="mbtn cancel" onclick="closeModal('weekModal')" style="font-size:12px;padding:8px;opacity:.6">Cancel</button>
+  </div>
+  <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Already on this week but a weight didn't progress?</div>
+    <button class="mbtn cancel" onclick="closeModal('weekModal');recalcCurrentWeek()" style="font-size:12px;padding:9px;width:100%">🔧 Fix progression for current week</button>
   </div>
 </div></div>
 
