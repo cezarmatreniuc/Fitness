@@ -319,7 +319,10 @@ function doAdvance(progress){
   const srcWk=dataWks.length?Math.max(...dataWks):prev;
   const pW=W[srcWk]||{},pR=R[srcWk]||{};
 
-  if(!W[next]){
+  // Only skip if W[next] already has real exercise data — an empty {} means
+  // a previous advance was interrupted and we should redo it
+  const nextHasData=W[next]&&allExercises().some(ex=>W[next][ex.id]!==undefined);
+  if(!nextHasData){
     W[next]={};R[next]={};
     allExercises().forEach(ex=>{
       const w=pW[ex.id];if(w===undefined)return;
@@ -329,26 +332,28 @@ function doAdvance(progress){
       const prevSugg=rd?.suggested??ex.rMin;
 
       if(ex.rMin===null){
-        // Timed — always just carry weight
         W[next][ex.id]=w;
         return;
       }
 
       if(!progress){
-        // Keep same weight, same suggestion
         W[next][ex.id]=w;
         R[next][ex.id]={reps:null,suggested:prevSugg??ex.rMin,isOverride:false};
         return;
       }
 
-      // Progress mode: only bump weight if user actually logged hitting rMax
-      const hitTop=logged!==null&&logged>=ex.rMax;
+      // hitTop = user explicitly logged rMax, OR they logged nothing but suggestion
+      // was already at rMax (meaning they hit it the prior week and may have just
+      // forgotten to tap the rep button — give benefit of the doubt)
+      const effectiveReps=logged!==null?logged:prevSugg;
+      const hitTop=effectiveReps!==null&&effectiveReps>=ex.rMax;
+
       W[next][ex.id]=hitTop?Math.round((w+step)*1000)/1000:w;
       let ns;
       if(hitTop){
-        ns=ex.rMin; // reset reps when weight bumps
-      } else {
-        // Increment rep suggestion by 1 from what was actually logged (or previous suggestion)
+        ns=ex.rMin; // weight bumped → reset rep target to bottom of range
+      }else{
+        // Increment suggestion by 1 from what was logged (or the previous suggestion)
         const base=logged!==null?logged:prevSugg;
         ns=Math.min((base??ex.rMin)+1,ex.rMax);
       }
