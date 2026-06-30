@@ -263,11 +263,21 @@ const DEFAULT_W20={chest_press_30:32,barbell_row:72.5,cgp_smith:37.5,pullups:10,
 // ═══════════════════════════════════════════════════════
 function checkWeekPrompt(){
   if(!cfg)return;
-  // Fire when today is on or after the next Monday that was set when we last advanced.
-  // This means the prompt appears automatically the first time you open the app
-  // on or after Monday — regardless of what time you actually advanced last week.
   const now=Date.now();
-  if(now<cfg.weekStartTs)return; // not yet Monday
+  if(now<cfg.weekStartTs)return; // not yet the anchored Monday
+
+  // ── Self-heal: a weekStartTs set before Monday-anchoring existed (or one
+  //    that's drifted for any other reason) can sit far in the past. If it's
+  //    been MORE than 13 days since weekStartTs, that's almost certainly a
+  //    stale/legacy value rather than 2+ genuinely skipped weeks — re-anchor
+  //    it to the upcoming Monday instead of prompting for a huge jump.
+  const daysSince=(now-cfg.weekStartTs)/(24*3600*1000);
+  if(daysSince>13){
+    cfg.weekStartTs=nextMondayTs();
+    persist();
+    return; // re-check next time the app opens, now correctly anchored
+  }
+
   const weeksGone=Math.max(1,Math.floor((now-cfg.weekStartTs)/(7*24*3600*1000))+1);
   const recordedWks=Object.keys(W).map(Number).filter(w=>Object.keys(W[w]||{}).length>0);
   const lastRecorded=recordedWks.length?Math.max(...recordedWks):cfg.currentWeek;
