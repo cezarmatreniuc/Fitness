@@ -264,21 +264,24 @@ const DEFAULT_W20={chest_press_30:32,barbell_row:72.5,cgp_smith:37.5,pullups:10,
 function checkWeekPrompt(){
   if(!cfg)return;
   const now=Date.now();
-  if(now<cfg.weekStartTs)return; // not yet the anchored Monday
 
-  // ── Self-heal: a weekStartTs set before Monday-anchoring existed (or one
-  //    that's drifted for any other reason) can sit far in the past. If it's
-  //    been MORE than 13 days since weekStartTs, that's almost certainly a
-  //    stale/legacy value rather than 2+ genuinely skipped weeks — re-anchor
-  //    it to the upcoming Monday instead of prompting for a huge jump.
+  // Guard: if we already prompted for this exact week number this session,
+  // or the user snoozed until tomorrow, don't fire again.
+  if(cfg.promptSnoozedUntil && now < cfg.promptSnoozedUntil) return;
+
+  // Only fire if weekStartTs is in the past (it's been set to next Monday)
+  if(now < cfg.weekStartTs) return;
+
+  // Guard against stale legacy weekStartTs from before Monday-anchoring:
+  // if it's been more than 14 days, silently re-anchor and don't prompt yet.
   const daysSince=(now-cfg.weekStartTs)/(24*3600*1000);
-  if(daysSince>13){
+  if(daysSince>14){
     cfg.weekStartTs=nextMondayTs();
-    persist();
-    return; // re-check next time the app opens, now correctly anchored
+    cfg.promptSnoozedUntil=null;
+    persist();return;
   }
 
-  const weeksGone=Math.max(1,Math.floor((now-cfg.weekStartTs)/(7*24*3600*1000))+1);
+  const weeksGone=Math.max(1,Math.floor(daysSince/7)+1);
   const recordedWks=Object.keys(W).map(Number).filter(w=>Object.keys(W[w]||{}).length>0);
   const lastRecorded=recordedWks.length?Math.max(...recordedWks):cfg.currentWeek;
   const targetWk=cfg.currentWeek+weeksGone;
@@ -292,19 +295,18 @@ function checkWeekPrompt(){
 }
 
 function nextMondayTs(){
-  // Returns timestamp of next Monday 00:00 local time
-  // so the week-change prompt fires reliably when you first open the app Monday
   const d=new Date();
-  const day=d.getDay(); // 0=Sun, 1=Mon … 6=Sat
-  const daysUntil=day===1?7:(8-day)%7; // days until next Monday (if today is Mon, next Mon)
+  const day=d.getDay();
+  const daysUntil=day===1?7:(8-day)%7;
   d.setDate(d.getDate()+daysUntil);
   d.setHours(0,0,0,0);
   return d.getTime();
 }
 
 function dismissMonday(){
-  // Snooze — push weekStartTs so it re-prompts in ~24h
-  cfg.weekStartTs=Date.now()-(6*24*3600*1000);
+  // Snooze until the NEXT Monday — so the prompt fires at most once per week,
+  // not every single day. This prevents the "nagging every day" bug.
+  cfg.promptSnoozedUntil=nextMondayTs();
   persist();closeModal('mondayModal');
 }
 
@@ -403,8 +405,8 @@ function doAdvance(progress){
     });
   }
   cfg.currentWeek=next;
-  // Anchor to next Monday so the prompt fires reliably when app is opened that day
   cfg.weekStartTs=nextMondayTs();
+  cfg.promptSnoozedUntil=null; // clear any snooze — next prompt fires on the new Monday
 }
 
 // ═══════════════════════════════════════════════════════
