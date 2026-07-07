@@ -261,37 +261,18 @@ const DEFAULT_W20={chest_press_30:32,barbell_row:72.5,cgp_smith:37.5,pullups:10,
 // ═══════════════════════════════════════════════════════
 //  WEEK MANAGEMENT — with skip/keep/progress options
 // ═══════════════════════════════════════════════════════
-function checkWeekPrompt(){
-  if(!cfg)return;
-  const now=Date.now();
-
-  // Guard: if we already prompted for this exact week number this session,
-  // or the user snoozed until tomorrow, don't fire again.
-  if(cfg.promptSnoozedUntil && now < cfg.promptSnoozedUntil) return;
-
-  // Only fire if weekStartTs is in the past (it's been set to next Monday)
-  if(now < cfg.weekStartTs) return;
-
-  // Guard against stale legacy weekStartTs from before Monday-anchoring:
-  // if it's been more than 14 days, silently re-anchor and don't prompt yet.
-  const daysSince=(now-cfg.weekStartTs)/(24*3600*1000);
-  if(daysSince>14){
-    cfg.weekStartTs=nextMondayTs();
-    cfg.promptSnoozedUntil=null;
-    persist();return;
-  }
-
-  const weeksGone=Math.max(1,Math.floor(daysSince/7)+1);
-  const recordedWks=Object.keys(W).map(Number).filter(w=>Object.keys(W[w]||{}).length>0);
-  const lastRecorded=recordedWks.length?Math.max(...recordedWks):cfg.currentWeek;
-  const targetWk=cfg.currentWeek+weeksGone;
-  const timeStr=weeksGone===1?'A new week has started':`${weeksGone} weeks have passed`;
-  document.getElementById('mondayDesc').innerHTML=
-    `${timeStr}. Time to start <b>Week ${targetWk}</b>.<br>
-     Last recorded: <b>Week ${lastRecorded}</b>.<br>
-     <span style="font-size:11px;color:var(--muted)">Week ${targetWk} inherits Week ${lastRecorded}'s weights.</span>`;
-  document.getElementById('mondayWeeksGone').value=weeksGone;
-  setTimeout(()=>document.getElementById('mondayModal').classList.add('open'),600);
+// ── Calendar week helpers ──
+// Returns "2026-W27" style key for any date (defaults to today)
+// Uses ISO week numbering (Monday = first day of week)
+function getYearWeek(date){
+  const d=new Date(date||Date.now());
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate()+4-(d.getDay()||7)); // shift to Thursday of the ISO week
+  const yearStart=new Date(d.getFullYear(),0,1);
+  const wk=Math.ceil((((d-yearStart)/86400000)+1)/7);
+  // Handle year boundary (week 1 of next year, or week 52/53 of last year)
+  const yr=d.getFullYear();
+  return `${yr}-W${String(wk).padStart(2,'0')}`;
 }
 
 function nextMondayTs(){
@@ -303,10 +284,33 @@ function nextMondayTs(){
   return d.getTime();
 }
 
+function checkWeekPrompt(){
+  if(!cfg)return;
+  const thisCalWeek=getYearWeek();
+
+  // Never prompt twice in the same calendar week
+  if(cfg.lastPromptedCalWeek===thisCalWeek)return;
+
+  // If weekAdvancedCalWeek matches this calendar week, user just advanced —
+  // don't immediately ask to advance again
+  if(cfg.weekAdvancedCalWeek===thisCalWeek)return;
+
+  // It's a new calendar week since the last advance — show the prompt
+  const recordedWks=Object.keys(W).map(Number).filter(w=>Object.keys(W[w]||{}).length>0);
+  const lastRecorded=recordedWks.length?Math.max(...recordedWks):cfg.currentWeek;
+  const targetWk=cfg.currentWeek+1;
+  document.getElementById('mondayDesc').innerHTML=
+    `A new week has started. Time to begin <b>Week ${targetWk}</b>.<br>
+     Last recorded: <b>Week ${lastRecorded}</b>.<br>
+     <span style="font-size:11px;color:var(--muted)">Week ${targetWk} inherits Week ${lastRecorded}'s weights.</span>`;
+  document.getElementById('mondayWeeksGone').value=1;
+  setTimeout(()=>document.getElementById('mondayModal').classList.add('open'),600);
+}
+
 function dismissMonday(){
-  // Snooze until the NEXT Monday — so the prompt fires at most once per week,
-  // not every single day. This prevents the "nagging every day" bug.
-  cfg.promptSnoozedUntil=nextMondayTs();
+  // Mark this calendar week as already prompted — won't fire again until next week
+  cfg.lastPromptedCalWeek=getYearWeek();
+  cfg.promptSnoozedUntil=null;
   persist();closeModal('mondayModal');
 }
 
@@ -405,8 +409,10 @@ function doAdvance(progress){
     });
   }
   cfg.currentWeek=next;
-  cfg.weekStartTs=nextMondayTs();
-  cfg.promptSnoozedUntil=null; // clear any snooze — next prompt fires on the new Monday
+  cfg.weekAdvancedCalWeek=getYearWeek(); // record which calendar week this advance happened
+  cfg.lastPromptedCalWeek=getYearWeek(); // don't re-prompt this same calendar week
+  cfg.weekStartTs=nextMondayTs();        // keep for reference, but logic no longer depends on it
+  cfg.promptSnoozedUntil=null;
 }
 
 // ═══════════════════════════════════════════════════════
