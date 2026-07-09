@@ -95,9 +95,7 @@ async function syncNow(){
     const r=await sbGetAll();
     if(!r){setSync('offline','Offline — changes saved locally');return;}
 
-    // Compare local vs cloud — take whichever has the higher currentWeek
-    // This permanently fixes the case where phone data is ahead of Supabase
-    const cloudCfg=r['mw_cfg'];
+    const cloudCfg=r['mw_cfg']||{};
     const cloudW=r['mw_W']||{};
     const localWks=Object.keys(W).map(Number);
     const cloudWks=Object.keys(cloudW).map(Number);
@@ -106,37 +104,44 @@ async function syncNow(){
     const localWeek=cfg?.currentWeek??0;
     const cloudWeek=cloudCfg?.currentWeek??0;
 
+    // For PROG specifically: use a version counter so exercise add/delete/move
+    // is always won by whichever device made the most recent structural change.
+    // Other keys still use the week-based comparison.
+    const localProgV=cfg?.progVersion??0;
+    const cloudProgV=cloudCfg?.progVersion??0;
+    const useCloudProg=cloudProgV>localProgV;
+    const useLocalProg=localProgV>=cloudProgV;
+
+    // Decide which side wins for workout data (W/R/cfg)
     let useLocal=false;
-    if(localHighest>cloudHighest){
-      // Local has more week data — push local up, don't overwrite with cloud
-      useLocal=true;
-      console.log(`Sync: local W${localHighest} > cloud W${cloudHighest} — pushing local to cloud`);
-    } else if(cloudWeek>localWeek){
-      // Cloud is ahead — pull cloud down
-      useLocal=false;
-    } else {
-      // Equal or local is current — push local to keep cloud fresh
-      useLocal=true;
-    }
+    if(localHighest>cloudHighest){useLocal=true;}
+    else if(cloudWeek>localWeek){useLocal=false;}
+    else{useLocal=true;}
 
     if(!useLocal){
-      // Load cloud into local
-      const map={
-        'mw_cfg':'cfg','mw_W':'W','mw_R':'R','mw_BW':'BW',
-        'mw_PROG':'PROG','mw_STEPS':'STEPS','mw_NOTES':'NOTES',
-        'mw_GOALS':'GOALS','mw_BWGOAL':'bwGoal'
-      };
+      // Pull cloud workout data down
+      const map={'mw_cfg':'cfg','mw_W':'W','mw_R':'R','mw_BW':'BW',
+        'mw_STEPS':'STEPS','mw_NOTES':'NOTES','mw_GOALS':'GOALS','mw_BWGOAL':'bwGoal'};
       for(const[rk,lk]of Object.entries(map)){
-        if(r[rk]!==null&&r[rk]!==undefined){
+        if(r[rk]!=null){
           ls.set(rk,r[rk]);
           if(lk==='cfg')cfg=r[rk];else if(lk==='W')W=r[rk];else if(lk==='R')R=r[rk];
-          else if(lk==='BW')BW=r[rk];else if(lk==='PROG')PROG=r[rk];else if(lk==='STEPS')STEPS=r[rk];
-          else if(lk==='NOTES')NOTES=r[rk];else if(lk==='GOALS')GOALS=r[rk];else if(lk==='bwGoal')bwGoal=r[rk];
+          else if(lk==='BW')BW=r[rk];else if(lk==='STEPS')STEPS=r[rk];
+          else if(lk==='NOTES')NOTES=r[rk];else if(lk==='GOALS')GOALS=r[rk];
+          else if(lk==='bwGoal')bwGoal=r[rk];
         }
       }
     }
 
-    // Always push local state to cloud to keep in sync
+    // PROG is resolved separately by version — always take the higher version
+    if(useCloudProg&&r['mw_PROG']!=null){
+      PROG=r['mw_PROG'];
+      ls.set(K.PROG,PROG);
+      // Also sync the progVersion into our cfg
+      if(cfg)cfg.progVersion=cloudProgV;
+      ls.set(K.cfg,cfg);
+    }
+
     await pushAll();
     lastSynced=new Date();setSync('synced','Synced '+lastSynced.toLocaleTimeString());
     backfillSuggestions();render();restoreTab();
@@ -586,7 +591,7 @@ function openRepEdit(exId){editingRepEx=exId;const ex=exById(exId);document.getE
 function saveRepRange(){
   const ex=exById(editingRepEx);const mn=document.getElementById('repMin').value,mx=document.getElementById('repMax').value,st=parseInt(document.getElementById('repSets').value)||ex.sets;
   ex.sets=st;if(mn===''||mx===''){ex.rMin=null;ex.rMax=null;}else{ex.rMin=parseInt(mn);ex.rMax=parseInt(mx);if(ex.rMax<ex.rMin)ex.rMax=ex.rMin;}
-  ex.target=targetStr(ex);persist();closeModal('repModal');render();restoreTab();showToast('Rep range updated');
+  ex.target=targetStr(ex);if(cfg)cfg.progVersion=(cfg.progVersion||0)+1;persist();closeModal('repModal');render();restoreTab();showToast('Rep range updated');
 }
 
 // ═══════════════════════════════════════════════════════
@@ -601,9 +606,10 @@ function saveExercise(){
   PROG[editingExBlock].exercises.push(ex);STEPS[id]=2.5;
   const wk=cfg.currentWeek;if(!isNaN(wt)){if(!W[wk])W[wk]={};W[wk][id]=Math.round(wt*1000)/1000;}
   if(ex.rMin!==null){if(!R[wk])R[wk]={};R[wk][id]={reps:null,suggested:ex.rMin,isOverride:false};}
+  if(cfg)cfg.progVersion=(cfg.progVersion||0)+1;
   persist();closeModal('exModal');render();restoreTab();renderManager();showToast('Exercise added');
 }
-function removeExercise(exId){const ex=exById(exId);if(!confirm(`Remove "${ex.name}"? Past data is kept.`))return;pushUndo('Exercise removed');PROG.forEach(b=>{b.exercises=b.exercises.filter(e=>e.id!==exId);});persist();render();restoreTab();renderManager();}
+function removeExercise(exId){const ex=exById(exId);if(!confirm(`Remove "${ex.name}"? Past data is kept.`))return;pushUndo('Exercise removed');PROG.forEach(b=>{b.exercises=b.exercises.filter(e=>e.id!==exId);});if(cfg)cfg.progVersion=(cfg.progVersion||0)+1;persist();render();restoreTab();renderManager();}
 function openExerciseManager(){closeMenu();renderManager();document.getElementById('mgrModal').classList.add('open');}
 function renderManager(){
   const c=document.getElementById('mgrContent');if(!c)return;let html='';
@@ -617,7 +623,7 @@ function renderManager(){
   });
   c.innerHTML=html;
 }
-function moveExercise(bi,ei,dir){const list=PROG[bi].exercises;const ni=ei+dir;if(ni<0||ni>=list.length)return;[list[ei],list[ni]]=[list[ni],list[ei]];persist();renderManager();render();restoreTab();}
+function moveExercise(bi,ei,dir){const list=PROG[bi].exercises;const ni=ei+dir;if(ni<0||ni>=list.length)return;[list[ei],list[ni]]=[list[ni],list[ei]];if(cfg)cfg.progVersion=(cfg.progVersion||0)+1;persist();renderManager();render();restoreTab();}
 function openRepEditFromMgr(exId){openRepEdit(exId);}
 
 function openMoveExercise(exId){
@@ -635,6 +641,7 @@ function doMoveExercise(exId,targetBi){
   PROG.forEach(b=>{const i=b.exercises.findIndex(e=>e.id===exId);if(i>=0){ex=b.exercises.splice(i,1)[0];}});
   if(!ex)return;
   PROG[targetBi].exercises.push(ex);
+  if(cfg)cfg.progVersion=(cfg.progVersion||0)+1;
   persist();renderManager();render();restoreTab();showToast('Moved to '+PROG[targetBi].title);
 }
 

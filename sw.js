@@ -3,7 +3,7 @@
 // Strategy: network-first for index.html (always get latest app code),
 //            cache-first for fonts and other static assets.
 
-const VERSION = 'my-workout-v13';
+const VERSION = 'my-workout-v14';
 const CACHE   = VERSION;
 
 const ALWAYS_FRESH = ['./', './index.html']; // always try network first
