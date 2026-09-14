@@ -56,7 +56,7 @@ const NEW_PROGRAM_3DAY=[
   {id:'day1_full_strength',title:'Full Body (Strength Focus)',exercises:[
     {id:'front_squat',name:'Smith Front Squat',target:'4 × 6–8',sets:4,rMin:6,rMax:8},
     {id:'rdl',name:'Romanian Deadlift',target:'4 × 6–8',sets:4,rMin:6,rMax:8},
-    {id:'mach_chest',name:'Machine Chest Press (Strength)',target:'4 × 6–8',sets:4,rMin:6,rMax:8},
+    {id:'mach_chest',name:'Machine Chest Press',target:'4 × 6–8',sets:4,rMin:6,rMax:8},
     {id:'pullups',name:'Wide Grip Pull-Ups (Weighted)',target:'4 × 6–8',sets:4,rMin:6,rMax:8},
     {id:'lat_raise',name:'Machine Lateral Raise',target:'3 × 8–12',sets:3,rMin:8,rMax:12},
     {id:'preacher',name:'Preacher Curl',target:'3 × 8–12',sets:3,rMin:8,rMax:12},
@@ -553,7 +553,7 @@ function buildCard(si,ei){
   const hasNote=NOTES[ex.id]&&NOTES[ex.id].trim().length>0;
   const card=document.createElement('div');card.id=`c-${si}-${ei}`;card.className='card'+(isAdj?' adj':'')+(isProg?' progressed':'');
   const wHTML=curW!==null?`<div class="ww"><button class="wbtn" onclick="adjW('${ex.id}',-1)">−</button><div class="wc" onclick="editW('${ex.id}')"><div class="wval${isAdj?' ch':''}" id="wv-${ex.id}">${fmt(curW)}</div><div class="wunit">kg</div></div><button class="wbtn" onclick="adjW('${ex.id}',1)">+</button></div>`:'';
-  let planLine=curW!==null?ex.target:'';
+  let planLine='';
   if(prevW!==null&&curW!==null)planLine=`<span class="plan-prev">${fmt(prevW)} kg last</span><span class="plan-arr">→</span>${fmt(curW)} kg`;
   const progHint=isProg?`<span class="prog-hint">↑ progressed</span>`:'';
   const rstHTML=isAdj?`<span class="rst" onclick="rstW('${ex.id}')">↩ Reset</span>`:'';
