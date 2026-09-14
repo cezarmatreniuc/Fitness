@@ -81,7 +81,7 @@ const NEW_PROGRAM_3DAY=[
 
 // ── STATE ──
 const K={cfg:'mw_cfg',W:'mw_W',R:'mw_R',s:'mw_s',BW:'mw_BW',
-  PROG:'mw_PROG',STEPS:'mw_STEPS',NOTES:'mw_NOTES',GOALS:'mw_GOALS',BWGOAL:'mw_BWGOAL'};
+  PROG:'mw_PROG',STEPS:'mw_STEPS',NOTES:'mw_NOTES',GOALS:'mw_GOALS',BWGOAL:'mw_BWGOAL',TAB:'mw_activeTab'};
 let cfg=null,W={},R={},BW=[],oldStep=2.5,bwGoal=null;
 let PROG=null,STEPS={},NOTES={},GOALS={};
 let activeTab=0,lastSynced=null;
@@ -185,6 +185,7 @@ async function boot(){
   W=ls.get(K.W)||{};R=ls.get(K.R)||{};BW=ls.get(K.BW)||[];oldStep=ls.get(K.s)||2.5;
   PROG=ls.get(K.PROG)||null;STEPS=ls.get(K.STEPS)||null;
   NOTES=ls.get(K.NOTES)||{};GOALS=ls.get(K.GOALS)||{};bwGoal=ls.get(K.BWGOAL)??null;
+  activeTab=ls.get(K.TAB)??0;
   migrateRepsFormat();
   if(!cfg){
     document.getElementById('setupDate').value=isoToday();
@@ -197,7 +198,9 @@ async function boot(){
   }
   runMigration();
   if(!ls.get("mw_health_seeded"))seedAppleHealthBW();
-  backfillSuggestions();checkWeekPrompt();render();
+  backfillSuggestions();checkWeekPrompt();
+  const maxTab=PROG.length+1;if(activeTab>maxTab||activeTab<0)activeTab=0;
+  render();
   syncNow();setInterval(syncNow,30000);
 }
 
@@ -488,7 +491,7 @@ function render(){
 }
 
 function switchTab(i){
-  activeTab=i;
+  activeTab=i;ls.set(K.TAB,i);
   document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('on',j===i));
   document.querySelectorAll('.section').forEach((s,j)=>s.classList.toggle('on',j===i));
   const pl=PROG.length;
@@ -550,7 +553,7 @@ function buildCard(si,ei){
   const hasNote=NOTES[ex.id]&&NOTES[ex.id].trim().length>0;
   const card=document.createElement('div');card.id=`c-${si}-${ei}`;card.className='card'+(isAdj?' adj':'')+(isProg?' progressed':'');
   const wHTML=curW!==null?`<div class="ww"><button class="wbtn" onclick="adjW('${ex.id}',-1)">−</button><div class="wc" onclick="editW('${ex.id}')"><div class="wval${isAdj?' ch':''}" id="wv-${ex.id}">${fmt(curW)}</div><div class="wunit">kg</div></div><button class="wbtn" onclick="adjW('${ex.id}',1)">+</button></div>`:'';
-  let planLine=ex.target;
+  let planLine=curW!==null?ex.target:'';
   if(prevW!==null&&curW!==null)planLine=`<span class="plan-prev">${fmt(prevW)} kg last</span><span class="plan-arr">→</span>${fmt(curW)} kg`;
   const progHint=isProg?`<span class="prog-hint">↑ progressed</span>`:'';
   const rstHTML=isAdj?`<span class="rst" onclick="rstW('${ex.id}')">↩ Reset</span>`:'';
@@ -684,8 +687,18 @@ function applyMigrateTemplate(){
   pushUndo('Switched to 3-Day Split');
   // Deep-copy so NEW_PROGRAM_3DAY itself is never mutated by later edits/reorders.
   PROG=JSON.parse(JSON.stringify(NEW_PROGRAM_3DAY));
-  // Any brand-new exercise ids need a step default so weight nudging works immediately.
-  allExercises().forEach(ex=>{if(STEPS[ex.id]===undefined)STEPS[ex.id]=2.5;});
+  const wk=cfg?cfg.currentWeek:null;
+  allExercises().forEach(ex=>{
+    // Any brand-new exercise ids need a step default so weight nudging works immediately.
+    if(STEPS[ex.id]===undefined)STEPS[ex.id]=2.5;
+    // Brand-new exercise ids also have no logged weight anywhere yet — seed a
+    // starting value for the current week so the weight control renders,
+    // same as manually adding an exercise via saveExercise().
+    if(wk!==null){
+      const everLogged=Object.values(W).some(wkData=>wkData&&wkData[ex.id]!==undefined);
+      if(!everLogged){if(!W[wk])W[wk]={};W[wk][ex.id]=0;}
+    }
+  });
   if(cfg)cfg.progVersion=(cfg.progVersion||0)+1;
   persist();closeModal('migrateModal');closeModal('mgrModal');render();restoreTab();
   showToast('Switched to 3-Day Split');
