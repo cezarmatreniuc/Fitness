@@ -494,8 +494,20 @@ input[type=date],input[type=number]{-webkit-appearance:none;appearance:none;min-
   </div>
   <p>Add or remove exercises. Use ▲▼ to reorder. Tap the ✎ on any to edit its rep range. Changes apply from this week onward; past weeks keep their data.</p>
   <div id="mgrContent"></div>
+  <button class="mgr-add-btn" style="margin-top:12px;border-color:var(--accent);color:var(--accent)" onclick="openMigrateTemplate()">⟲ Load 3-Day Template</button>
   <div class="modal-btns" style="margin-top:16px">
     <button class="mbtn confirm" onclick="closeModal('mgrModal')">Done</button>
+  </div>
+</div></div>
+
+<!-- MIGRATE TEMPLATE MODAL -->
+<div class="modal-bg" id="migrateModal"><div class="modal">
+  <h2>Switch to <span>3-Day Split</span></h2>
+  <p>This replaces your current 4-block program (Upper/Lower Strength + Hypertrophy) with a 3-day Full Body / Upper / Lower split.</p>
+  <p>Exercises that exist in both programs keep their full weight and rep history — nothing is deleted. Exercises dropped from the new plan stay recorded in Progress/History, they just won't show a live card anymore. This can be undone immediately after with the Undo toast.</p>
+  <div class="modal-btns" style="margin-top:16px">
+    <button class="mbtn cancel" onclick="closeModal('migrateModal')">Cancel</button>
+    <button class="mbtn confirm" onclick="applyMigrateTemplate()">Switch Program</button>
   </div>
 </div></div>
 

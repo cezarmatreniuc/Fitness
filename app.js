@@ -50,6 +50,35 @@ const DEFAULT_PROGRAM=[
   ]},
 ];
 
+// ── 3-DAY TEMPLATE (Full Body Strength / Upper Hyper / Lower Hyper) ──
+// ids shared with DEFAULT_PROGRAM carry their full W/R/STEPS/NOTES/GOALS history forward.
+const NEW_PROGRAM_3DAY=[
+  {id:'day1_full_strength',title:'Full Body (Strength Focus)',exercises:[
+    {id:'front_squat',name:'Smith Front Squat',target:'4 × 6–8',sets:4,rMin:6,rMax:8},
+    {id:'rdl',name:'Romanian Deadlift',target:'4 × 6–8',sets:4,rMin:6,rMax:8},
+    {id:'mach_chest',name:'Machine Chest Press (Strength)',target:'4 × 6–8',sets:4,rMin:6,rMax:8},
+    {id:'pullups',name:'Wide Grip Pull-Ups (Weighted)',target:'4 × 6–8',sets:4,rMin:6,rMax:8},
+    {id:'lat_raise',name:'Machine Lateral Raise',target:'3 × 8–12',sets:3,rMin:8,rMax:12},
+    {id:'preacher',name:'Preacher Curl',target:'3 × 8–12',sets:3,rMin:8,rMax:12},
+    {id:'tricep_rope',name:'Tricep Rope Extension',target:'3 × 8–12',sets:3,rMin:8,rMax:12},
+  ]},
+  {id:'day2_upper_hyper',title:'Upper (Hypertrophy)',exercises:[
+    {id:'incline_mach_chest',name:'Incline Machine Chest Press',target:'3 × 10–15',sets:3,rMin:10,rMax:15},
+    {id:'pec_dec',name:'Pec Dec',target:'3 × 10–15',sets:3,rMin:10,rMax:15},
+    {id:'cs_row',name:'Chest Supported Row',target:'3 × 8–10',sets:3,rMin:8,rMax:10},
+    {id:'lat_pullover',name:'Lat Pullover',target:'3 × 8–10',sets:3,rMin:8,rMax:10},
+    {id:'cable_lat',name:'Cable Lateral Raise',target:'3 × 10–15',sets:3,rMin:10,rMax:15},
+    {id:'rev_tri',name:'Tricep Overhead Extension',target:'3 × 10–12',sets:3,rMin:10,rMax:12},
+    {id:'bench_curls',name:'30° Bench Bicep Curls',target:'3 × 10–12',sets:3,rMin:10,rMax:12},
+  ]},
+  {id:'day3_lower_hyper',title:'Lower (Hypertrophy)',exercises:[
+    {id:'ham_curl',name:'Hamstring Curl',target:'3 × 10–15',sets:3,rMin:10,rMax:15},
+    {id:'leg_ext',name:'Leg Extensions',target:'3 × 10–15',sets:3,rMin:10,rMax:15},
+    {id:'leg_press_g',name:'Leg Press (Glute)',target:'3 × 10–15',sets:3,rMin:10,rMax:15},
+    {id:'abs_mach',name:'Abs Machine',target:'3 × 15–20',sets:3,rMin:15,rMax:20},
+  ]},
+];
+
 // ── STATE ──
 const K={cfg:'mw_cfg',W:'mw_W',R:'mw_R',s:'mw_s',BW:'mw_BW',
   PROG:'mw_PROG',STEPS:'mw_STEPS',NOTES:'mw_NOTES',GOALS:'mw_GOALS',BWGOAL:'mw_BWGOAL'};
@@ -646,6 +675,21 @@ function doMoveExercise(exId,targetBi){
 }
 
 function openAddExerciseFromMgr(bi){closeModal('mgrModal');openAddExercise(bi);}
+
+// ═══════════════════════════════════════════════════════
+//  MIGRATE TO 3-DAY TEMPLATE
+// ═══════════════════════════════════════════════════════
+function openMigrateTemplate(){document.getElementById('migrateModal').classList.add('open');}
+function applyMigrateTemplate(){
+  pushUndo('Switched to 3-Day Split');
+  // Deep-copy so NEW_PROGRAM_3DAY itself is never mutated by later edits/reorders.
+  PROG=JSON.parse(JSON.stringify(NEW_PROGRAM_3DAY));
+  // Any brand-new exercise ids need a step default so weight nudging works immediately.
+  allExercises().forEach(ex=>{if(STEPS[ex.id]===undefined)STEPS[ex.id]=2.5;});
+  if(cfg)cfg.progVersion=(cfg.progVersion||0)+1;
+  persist();closeModal('migrateModal');closeModal('mgrModal');render();restoreTab();
+  showToast('Switched to 3-Day Split');
+}
 
 // ═══════════════════════════════════════════════════════
 //  PROGRESS TAB (merged charts + history)
