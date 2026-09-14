@@ -3,10 +3,10 @@
 // Strategy: network-first for index.html (always get latest app code),
 //            cache-first for fonts and other static assets.
 
-const VERSION = 'my-workout-v14';
+const VERSION = 'my-workout-v15';
 const CACHE   = VERSION;
 
-const ALWAYS_FRESH = ['./', './index.html']; // always try network first
+const ALWAYS_FRESH = ['./', './index.html', './app.js']; // always try network first
 
 self.addEventListener('install', e => {
   // Install immediately — don't wait for old SW to die
